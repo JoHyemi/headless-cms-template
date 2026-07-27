@@ -1,0 +1,27 @@
+import { Module } from "@nestjs/common";
+import { ServeStaticModule } from "@nestjs/serve-static";
+import { join } from "node:path";
+import { PrismaModule } from "./prisma/prisma.module";
+import { SiteModule } from "./site/site.module";
+import { AuthModule } from "./auth/auth.module";
+import { PostsModule } from "./posts/posts.module";
+import { CategoriesModule } from "./categories/categories.module";
+import { PagesModule } from "./pages/pages.module";
+import { MediaModule } from "./media/media.module";
+
+@Module({
+  imports: [
+    PrismaModule,
+    SiteModule,
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), "uploads"),
+      serveRoot: "/uploads",
+    }),
+    AuthModule,
+    PostsModule,
+    CategoriesModule,
+    PagesModule,
+    MediaModule,
+  ],
+})
+export class AppModule {}

@@ -1,0 +1,102 @@
+// Prisma 스키마: 헤드리스 CMS의 핵심 콘텐츠 모델을 정의합니다.
+// structure.md의 "1 CMS = 1 Site" 원칙에 따라 V1은 Site를 하나만 생성하지만,
+// 향후 멀티사이트 확장을 대비해 콘텐츠 모델에 siteId FK를 미리 붙여둡니다.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ContentStatus {
+  DRAFT // 임시 저장(초안)
+  PUBLISHED // 발행됨(공개 API/사이트에 노출)
+}
+
+// 향후 멀티사이트 확장을 위한 자리. V1에서는 이 테이블에 행이 하나만 존재합니다.
+model Site {
+  id         String     @id @default(cuid())
+  name       String
+  domain     String     @unique
+  createdAt  DateTime   @default(now())
+  posts      Post[]
+  categories Category[]
+  pages      Page[]
+  media      Media[]
+}
+
+// 관리자 로그인 계정. V1은 사이트 하나에 관리자 한 명만 가정합니다(권한/역할 구분 없음).
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String   @default("Admin")
+  createdAt    DateTime @default(now())
+}
+
+model Post {
+  id          String        @id @default(cuid())
+  site        Site          @relation(fields: [siteId], references: [id])
+  siteId      String
+  title       String
+  slug        String        @unique
+  excerpt     String? // 목록에서 보여줄 요약. 없으면 본문에서 자동 생성
+  content     Json // 본문 — 블록 에디터의 Block[] (packages/blocks 참고)
+  status      ContentStatus @default(DRAFT)
+  author      String        @default("Admin")
+  thumbnail   Media?        @relation(fields: [thumbnailId], references: [id])
+  thumbnailId String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  categories  Category[]
+
+  @@index([siteId, status, createdAt])
+}
+
+// 워드프레스의 카테고리처럼, 글 하나가 여러 카테고리에 속할 수 있습니다(다대다).
+model Category {
+  id        String   @id @default(cuid())
+  site      Site     @relation(fields: [siteId], references: [id])
+  siteId    String
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  posts     Post[]
+
+  @@index([siteId])
+}
+
+// 정적 페이지(회사 소개, 이용약관 등). Post와 달리 카테고리/작성자 개념이 없는
+// 단순한 콘텐츠 모델입니다. Custom Post Type 같은 범용 엔진은 V1 범위 밖입니다.
+model Page {
+  id        String        @id @default(cuid())
+  site      Site          @relation(fields: [siteId], references: [id])
+  siteId    String
+  title     String
+  slug      String        @unique
+  content   Json
+  status    ContentStatus @default(DRAFT)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([siteId, status])
+}
+
+// 업로드된 이미지/파일 메타데이터. 실제 파일은 API 서버 로컬 디스크(apps/api/uploads)에
+// 저장되고, url은 그 파일을 가리키는 절대/상대 경로입니다.
+model Media {
+  id        String   @id @default(cuid())
+  site      Site     @relation(fields: [siteId], references: [id])
+  siteId    String
+  filename  String
+  url       String
+  mimeType  String
+  size      Int
+  alt       String?
+  createdAt DateTime @default(now())
+  posts     Post[]
+
+  @@index([siteId])
+}

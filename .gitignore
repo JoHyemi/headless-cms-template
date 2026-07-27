@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -14,7 +14,7 @@
 /coverage
 
 # next.js
-/.next/
+.next/
 /out/
 
 # production
@@ -36,6 +36,18 @@ yarn-error.log*
 # vercel
 .vercel
 
+# prisma (SQLite 로컬 DB 파일 — 구버전 단일 앱 시절 유물)
+/prisma/*.db
+/prisma/*.db-journal
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# monorepo: 각 패키지/앱 빌드 산출물
+packages/*/dist
+apps/api/dist
+
+# apps/api: 업로드된 미디어 파일 (파일 자체는 배포 서버 로컬 디스크에만 존재)
+apps/api/uploads/*
+!apps/api/uploads/.gitkeep

@@ -1,24 +1,21 @@
 {
-  "name": "cms",
-  "version": "0.1.0",
+  "name": "cms-monorepo",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "next": "16.2.11",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "dev": "concurrently -n api,admin,website -c blue,green,magenta \"npm run dev -w @cms/api\" \"npm run dev -w @cms/admin\" \"npm run dev -w @cms/website\"",
+    "build": "npm run build -w @cms/blocks && npm run build -w @cms/api && npm run build -w @cms/admin && npm run build -w @cms/website",
+    "prisma:generate": "npm run prisma:generate -w @cms/api",
+    "prisma:migrate": "npm run prisma:migrate -w @cms/api",
+    "db:seed": "npm run db:seed -w @cms/api",
+    "db:studio": "npm run db:studio -w @cms/api",
+    "lint": "npm run lint -w @cms/admin && npm run lint -w @cms/website"
   },
   "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.11",
+    "concurrently": "^9.0.1",
     "typescript": "^5"
   }
 }

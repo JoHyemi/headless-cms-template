@@ -1,0 +1,46 @@
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { unlink } from "node:fs/promises";
+import { join } from "node:path";
+import { PrismaService } from "../prisma/prisma.service";
+import { SiteService } from "../site/site.service";
+
+@Injectable()
+export class MediaService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly site: SiteService
+  ) {}
+
+  async findAll() {
+    const media = await this.prisma.media.findMany({ orderBy: { createdAt: "desc" } });
+    return { media };
+  }
+
+  async register(file?: Express.Multer.File) {
+    if (!file) throw new BadRequestException("アップロードするファイルがありません。");
+
+    return this.prisma.media.create({
+      data: {
+        filename: file.originalname,
+        url: `/uploads/${file.filename}`,
+        mimeType: file.mimetype,
+        size: file.size,
+        siteId: await this.site.getSiteId(),
+      },
+    });
+  }
+
+  async remove(id: string) {
+    const media = await this.prisma.media.findUnique({ where: { id } });
+    if (!media) throw new NotFoundException("メディアが見つかりません。");
+
+    try {
+      await unlink(join(process.cwd(), "uploads", media.url.replace("/uploads/", "")));
+    } catch {
+      // 파일이 이미 없어도 DB 레코드는 정리합니다.
+    }
+
+    await this.prisma.media.delete({ where: { id } });
+    return { ok: true };
+  }
+}

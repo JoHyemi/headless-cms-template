@@ -1,0 +1,9 @@
+{
+  "name": "@cms/ui",
+  "version": "0.1.0",
+  "private": true,
+  "main": "Logo.tsx",
+  "peerDependencies": {
+    "react": ">=19"
+  }
+}
