@@ -3,6 +3,7 @@
 WordPressのように **「1 CMS = 1 Site」** 構造に従うヘッドレス(headless) CMSです。
 設計方針は [` structure.md`](./ structure.md) を参考にしており、管理画面(Admin)・API(Backend)・
 公開サイト(Website)を完全に分離した別々のアプリとして運用します。
+データモデル・API・セキュリティなどの詳細仕様は [`SPEC.md`](./SPEC.md) を参照してください。
 
 - **管理画面(Admin)**: ログイン後に記事(Post)・カテゴリー・メディア・カスタムブロックを作成/管理します。
 - **API**: NestJSで作られたREST API。AdminとWebsiteはこのAPIだけを呼び出し、DBの構造を直接知りません。
