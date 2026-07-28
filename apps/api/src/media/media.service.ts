@@ -3,6 +3,7 @@ import { unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { PrismaService } from "../prisma/prisma.service";
 import { SiteService } from "../site/site.service";
+import { UpdateMediaDto } from "./dto/update-media.dto";
 
 @Injectable()
 export class MediaService {
@@ -16,7 +17,7 @@ export class MediaService {
     return { media };
   }
 
-  async register(file?: Express.Multer.File) {
+  async register(file?: Express.Multer.File, alt?: string) {
     if (!file) throw new BadRequestException("アップロードするファイルがありません。");
 
     return this.prisma.media.create({
@@ -25,9 +26,21 @@ export class MediaService {
         url: `/uploads/${file.filename}`,
         mimeType: file.mimetype,
         size: file.size,
+        alt: alt?.trim() || null,
         siteId: await this.site.getSiteId(),
       },
     });
+  }
+
+  async update(id: string, dto: UpdateMediaDto) {
+    try {
+      return await this.prisma.media.update({
+        where: { id },
+        data: { alt: dto.alt?.trim() || null },
+      });
+    } catch {
+      throw new NotFoundException("メディアが見つかりません。");
+    }
   }
 
   async remove(id: string) {

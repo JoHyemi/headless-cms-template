@@ -5,7 +5,7 @@ import { API_URL, apiFetch, uploadFile } from "@/lib/api-client";
 import type { MediaDTO } from "@/types/api";
 
 type Props = {
-  onSelect: (url: string) => void;
+  onSelect: (item: MediaDTO) => void;
   onClose: () => void;
 };
 
@@ -20,6 +20,7 @@ export function MediaPickerModal({ onSelect, onClose }: Props) {
   const [media, setMedia] = useState<MediaDTO[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadAlt, setUploadAlt] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -46,6 +47,7 @@ export function MediaPickerModal({ onSelect, onClose }: Props) {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      if (uploadAlt.trim()) formData.append("alt", uploadAlt.trim());
       const res = await uploadFile("/media", formData);
       const data = await res.json();
       if (!res.ok) {
@@ -53,6 +55,7 @@ export function MediaPickerModal({ onSelect, onClose }: Props) {
         return;
       }
       setMedia((prev) => [data as MediaDTO, ...(prev ?? [])]);
+      setUploadAlt("");
     } catch {
       setError("ネットワークエラーによりアップロードに失敗しました。");
     } finally {
@@ -92,16 +95,25 @@ export function MediaPickerModal({ onSelect, onClose }: Props) {
 
         {error && <p className="error-text">{error}</p>}
 
-        <label className="btn" style={{ cursor: "pointer", display: "inline-flex", marginBottom: "1.25rem" }}>
-          {uploading ? "アップロード中…" : "+ 新しい画像をアップロード"}
+        <div className="actions-row" style={{ marginBottom: "1.25rem" }}>
+          <label className="btn" style={{ cursor: "pointer", display: "inline-flex" }}>
+            {uploading ? "アップロード中…" : "+ 新しい画像をアップロード"}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleUpload}
+              disabled={uploading}
+              style={{ display: "none" }}
+            />
+          </label>
           <input
-            type="file"
-            accept="image/*"
-            onChange={handleUpload}
-            disabled={uploading}
-            style={{ display: "none" }}
+            type="text"
+            value={uploadAlt}
+            onChange={(e) => setUploadAlt(e.target.value)}
+            placeholder="代替テキスト（alt・任意）"
+            style={{ flex: 1, minWidth: "160px" }}
           />
-        </label>
+        </div>
 
         {media === null ? (
           <p className="muted">読み込み中…</p>
@@ -119,7 +131,7 @@ export function MediaPickerModal({ onSelect, onClose }: Props) {
               <button
                 key={item.id}
                 type="button"
-                onClick={() => onSelect(item.url)}
+                onClick={() => onSelect(item)}
                 title={item.filename}
                 style={{
                   border: "1px solid var(--border)",

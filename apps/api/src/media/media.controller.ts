@@ -1,9 +1,21 @@
-import { Controller, Delete, Get, Param, Post, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { diskStorage } from "multer";
 import { extname } from "node:path";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { MediaService } from "./media.service";
+import { UpdateMediaDto } from "./dto/update-media.dto";
 
 @Controller("media")
 export class MediaController {
@@ -29,8 +41,14 @@ export class MediaController {
       limits: { fileSize: 10 * 1024 * 1024 },
     })
   )
-  upload(@UploadedFile() file?: Express.Multer.File) {
-    return this.mediaService.register(file);
+  upload(@UploadedFile() file?: Express.Multer.File, @Body("alt") alt?: string) {
+    return this.mediaService.register(file, alt);
+  }
+
+  @Patch(":id")
+  @UseGuards(JwtAuthGuard)
+  update(@Param("id") id: string, @Body() dto: UpdateMediaDto) {
+    return this.mediaService.update(id, dto);
   }
 
   @Delete(":id")

@@ -7,6 +7,7 @@ import { uploadFile } from "@/lib/api-client";
 export function MediaUploadForm() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [alt, setAlt] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,6 +22,7 @@ export function MediaUploadForm() {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      if (alt.trim()) formData.append("alt", alt.trim());
       const res = await uploadFile("/media", formData);
       const data = await res.json();
       if (!res.ok) {
@@ -28,6 +30,7 @@ export function MediaUploadForm() {
         return;
       }
       if (inputRef.current) inputRef.current.value = "";
+      setAlt("");
       router.refresh();
     } catch {
       setError("ネットワークエラーによりアップロードに失敗しました。");
@@ -40,6 +43,13 @@ export function MediaUploadForm() {
     <form onSubmit={handleSubmit} className="actions-row" style={{ marginBottom: "1.5rem" }}>
       {error && <p className="error-text">{error}</p>}
       <input ref={inputRef} type="file" required style={{ flex: 1, minWidth: "200px" }} />
+      <input
+        type="text"
+        value={alt}
+        onChange={(e) => setAlt(e.target.value)}
+        placeholder="代替テキスト（alt・任意）"
+        style={{ flex: 1, minWidth: "200px" }}
+      />
       <button type="submit" className="btn btn-primary" disabled={submitting}>
         {submitting ? "アップロード中…" : "アップロード"}
       </button>

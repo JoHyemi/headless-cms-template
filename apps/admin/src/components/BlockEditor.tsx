@@ -201,7 +201,11 @@ function BlockFields({
       return (
         <>
           <div style={{ marginBottom: "0.5rem" }}>
-            <ImageUrlField value={block.url} onChange={(url) => onChange({ ...block, url })} />
+            <ImageUrlField
+              value={block.url}
+              onChange={(url) => onChange({ ...block, url })}
+              onPick={({ url, alt }) => onChange({ ...block, url, alt })}
+            />
           </div>
           <input
             type="text"
