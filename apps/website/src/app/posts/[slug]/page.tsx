@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/SiteHeader";
-import { BlockRenderer } from "@cms/blocks";
+import { BlockRenderer, PRESET_CUSTOM_COMPONENTS } from "@cms/blocks";
 import { apiFetch } from "@/lib/api";
 import type { PostDTO } from "@/types/api";
 
@@ -41,7 +41,7 @@ export default async function PostPage({ params }: Props) {
           </div>
         )}
         <article style={{ marginTop: "1.5rem" }}>
-          <BlockRenderer blocks={post.content} />
+          <BlockRenderer blocks={post.content} customComponents={PRESET_CUSTOM_COMPONENTS} />
         </article>
       </main>
     </>

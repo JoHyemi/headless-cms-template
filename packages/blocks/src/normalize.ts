@@ -4,8 +4,9 @@ function isString(value: unknown): value is string {
   return typeof value === "string";
 }
 
-/** http(s)またはサイト内部パスのみ許可します。javascript:のような危険なスキームを防ぐためです。 */
-function isSafeImageUrl(url: string): boolean {
+/** http(s)またはサイト内部パスのみ許可します。javascript:のような危険なスキームを防ぐためです
+ *  (aタグのhrefにそのまま使うと、クリック時にスクリプトが実行されてしまいます)。 */
+export function isSafeUrl(url: string): boolean {
   return /^https?:\/\//i.test(url) || url.startsWith("/");
 }
 
@@ -85,7 +86,7 @@ export function hasContent(block: Block): boolean {
       return block.items.some((item) => item.trim().length > 0);
     case "image": {
       const url = block.url.trim();
-      return url.length > 0 && isSafeImageUrl(url);
+      return url.length > 0 && isSafeUrl(url);
     }
     case "custom":
       return Object.values(block.fields).some((value) =>

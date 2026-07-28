@@ -70,7 +70,7 @@ export function BlockTypeForm({ mode, blockType }: Props) {
           body: JSON.stringify({
             name,
             fields: cleanedFields,
-            ...(mode === "edit" ? { slug } : {}),
+            ...(slug.trim() ? { slug } : {}),
           }),
         }
       );
@@ -106,22 +106,20 @@ export function BlockTypeForm({ mode, blockType }: Props) {
         />
       </div>
 
-      {mode === "edit" && (
-        <div className="field">
-          <label htmlFor="bt-slug">slug</label>
-          <input
-            id="bt-slug"
-            type="text"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            placeholder="block-type-slug"
-            required
-          />
-          <span className="hint">
-            このslugをBlockRenderer/blocksToHtmlのカスタムレンダラー登録時のキーとして使います。
-          </span>
-        </div>
-      )}
+      <div className="field">
+        <label htmlFor="bt-slug">slug（任意）</label>
+        <input
+          id="bt-slug"
+          type="text"
+          value={slug}
+          onChange={(e) => setSlug(e.target.value)}
+          placeholder="例：cta-button（空欄ならブロック名から自動生成）"
+        />
+        <span className="hint">
+          このslugをBlockRenderer/blocksToHtmlのカスタムレンダラー登録時のキーとして使います。
+          あらかじめ開発者と決めた英数字のslugを指定しておくと、レンダラーの登録がスムーズです。
+        </span>
+      </div>
 
       <div className="field">
         <label>フィールド</label>

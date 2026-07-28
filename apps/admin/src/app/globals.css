@@ -305,6 +305,54 @@ a.badge-category:hover {
   padding-left: 1.5rem;
 }
 
+/* ---- カスタムブロック「cta-button」(packages/blocks/src/presets/ctaButton.tsx) ---- */
+
+.cta-block {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.cta-block .cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.9rem 1.85rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-foreground);
+  font-weight: 700;
+  font-size: 1rem;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cta-block .cta-button span {
+  transition: transform 0.15s ease;
+}
+
+.cta-block .cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.cta-block .cta-button:hover span {
+  transform: translateX(3px);
+}
+
+.cta-block-highlight {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.cta-block-highlight .cta-button {
+  background: var(--foreground);
+  color: var(--background);
+}
+
 .empty-state {
   border: 1px dashed var(--border);
   border-radius: 16px;

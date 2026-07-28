@@ -2,7 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, SyntheticEvent, useState } from "react";
-import { BlockRenderer, defaultBlocks, hasContent, normalizeBlocks, type Block } from "@cms/blocks";
+import {
+  BlockRenderer,
+  defaultBlocks,
+  hasContent,
+  normalizeBlocks,
+  PRESET_CUSTOM_COMPONENTS,
+  type Block,
+} from "@cms/blocks";
 import { BlockEditor } from "@/components/BlockEditor";
 import { apiFetch } from "@/lib/api-client";
 import type { BlockTypeDTO, CategoryDTO, PostDTO } from "@/types/api";
@@ -153,7 +160,7 @@ export function PostForm({ mode, post, allCategories, blockTypes = [] }: Props) 
           )}
           <div style={{ marginTop: "1.5rem" }}>
             {blocks.some(hasContent) ? (
-              <BlockRenderer blocks={blocks} />
+              <BlockRenderer blocks={blocks} customComponents={PRESET_CUSTOM_COMPONENTS} />
             ) : (
               <p className="muted">(本文なし)</p>
             )}
