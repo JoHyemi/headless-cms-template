@@ -1,7 +1,7 @@
 import { serverApiFetch } from "@/lib/api-server";
 import { MediaUploadForm } from "@/components/MediaUploadForm";
 import { MediaActions } from "@/components/MediaActions";
-import { MediaAltForm } from "@/components/MediaAltForm";
+import { MediaMetaForm } from "@/components/MediaMetaForm";
 import type { MediaDTO } from "@/types/api";
 
 const API_URL = process.env.API_URL ?? "http://localhost:4000";
@@ -47,7 +47,7 @@ export default async function MediaPage() {
                 {formatSize(item.size)}
               </p>
               {item.mimeType.startsWith("image/") && (
-                <MediaAltForm id={item.id} initialAlt={item.alt} />
+                <MediaMetaForm id={item.id} initialAlt={item.alt} initialCaption={item.caption} />
               )}
               <MediaActions id={item.id} />
             </div>

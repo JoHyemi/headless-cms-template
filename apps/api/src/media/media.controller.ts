@@ -41,8 +41,12 @@ export class MediaController {
       limits: { fileSize: 10 * 1024 * 1024 },
     })
   )
-  upload(@UploadedFile() file?: Express.Multer.File, @Body("alt") alt?: string) {
-    return this.mediaService.register(file, alt);
+  upload(
+    @UploadedFile() file?: Express.Multer.File,
+    @Body("alt") alt?: string,
+    @Body("caption") caption?: string
+  ) {
+    return this.mediaService.register(file, alt, caption);
   }
 
   @Patch(":id")

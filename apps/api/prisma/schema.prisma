@@ -96,6 +96,7 @@ model Media {
   mimeType  String
   size      Int
   alt       String?
+  caption   String?
   createdAt DateTime @default(now())
   posts     Post[]
 

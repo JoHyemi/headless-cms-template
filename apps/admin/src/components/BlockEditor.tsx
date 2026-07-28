@@ -204,7 +204,7 @@ function BlockFields({
             <ImageUrlField
               value={block.url}
               onChange={(url) => onChange({ ...block, url })}
-              onPick={({ url, alt }) => onChange({ ...block, url, alt })}
+              onPick={({ url, alt, caption }) => onChange({ ...block, url, alt, caption })}
             />
           </div>
           <input

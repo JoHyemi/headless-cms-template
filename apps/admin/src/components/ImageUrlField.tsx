@@ -7,10 +7,10 @@ import type { MediaDTO } from "@/types/api";
 type Props = {
   value: string;
   onChange: (url: string) => void;
-  // メディア選択時に呼ばれる。url/altを1回のonChangeでまとめて反映できるよう、
-  // onChange(url)とは別のコールバックにしている(2回に分けて呼ぶと、片方が
-  // 古いstateを参照して相手の変更を打ち消してしまうため)。
-  onPick?: (result: { url: string; alt: string }) => void;
+  // メディア選択時に呼ばれる。url/alt/captionを1回のonChangeでまとめて反映できるよう、
+  // onChange(url)とは別のコールバックにしている(複数回に分けて呼ぶと、後の呼び出しが
+  // 古いstateを参照して前の変更を打ち消してしまうため)。
+  onPick?: (result: { url: string; alt: string; caption: string }) => void;
   placeholder?: string;
 };
 
@@ -21,9 +21,15 @@ function fallbackAlt(item: MediaDTO): string {
   return item.filename.replace(/\.[^./]+$/, "").replace(/[-_]+/g, " ").trim();
 }
 
+// キャプションはaltと違って画面に見える編集コンテンツなので、altのようにファイル名から
+// でっち上げたりはしない — メディアに登録済みのキャプションがあればそれを使い、なければ空のまま。
+function fallbackCaption(item: MediaDTO): string {
+  return item.caption?.trim() ?? "";
+}
+
 // 画像URL入力欄 + 「メディアから選択」ボタン。既存のアップロード済み画像から選ぶことも、
 // 外部の画像URLを直接入力することもできます(値はどちらもただの文字列として保存されます)。
-// onAltChangeを渡しておくと、メディアを選択した際にそのaltテキストも自動で埋められます。
+// onPickを渡しておくと、メディアを選択した際にそのalt/キャプションも自動で埋められます。
 export function ImageUrlField({ value, onChange, onPick, placeholder }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -43,7 +49,7 @@ export function ImageUrlField({ value, onChange, onPick, placeholder }: Props) {
         <MediaPickerModal
           onSelect={(item) => {
             if (onPick) {
-              onPick({ url: item.url, alt: fallbackAlt(item) });
+              onPick({ url: item.url, alt: fallbackAlt(item), caption: fallbackCaption(item) });
             } else {
               onChange(item.url);
             }

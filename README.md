@@ -135,12 +135,14 @@ model Page {
 }
 
 model Media {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
   siteId   String
   filename String
   url      String
   mimeType String
   size     Int
+  alt      String? // 代替テキスト。画像ブロックで選択すると自動的に反映される
+  caption  String? // キャプション。同じく画像ブロックで選択すると自動的に反映される
 }
 
 model BlockType {
@@ -188,7 +190,7 @@ model BlockType {
 | GET | `/categories` | - | カテゴリー一覧 |
 | POST/PATCH/DELETE | `/categories(/:id)` | ✅ | カテゴリーの作成/更新/削除 |
 | GET/POST/PATCH/DELETE | `/pages(/:id)` | 一部 | Postと同じパターン(カテゴリー・作成者なし) |
-| GET/POST/DELETE | `/media(/:id)` | ✅ | ファイルのアップロード(`multipart/form-data`)/一覧/削除 |
+| GET/POST/PATCH/DELETE | `/media(/:id)` | ✅ | ファイルのアップロード(`multipart/form-data`。alt/captionも同時送信可)/一覧/alt・captionの更新/削除 |
 | GET/POST/PATCH/DELETE | `/block-types(/:id)` | ✅ | カスタムブロックのフィールド構成の作成/更新/削除・一覧取得(管理画面専用) |
 | POST | `/auth/login` | - | `{ email, password }` → セッションクッキー(JWT, httpOnly)を発行 |
 | POST | `/auth/logout` | - | セッションクッキーを削除 |

@@ -21,6 +21,7 @@ export function MediaPickerModal({ onSelect, onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadAlt, setUploadAlt] = useState("");
+  const [uploadCaption, setUploadCaption] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -48,6 +49,7 @@ export function MediaPickerModal({ onSelect, onClose }: Props) {
       const formData = new FormData();
       formData.append("file", file);
       if (uploadAlt.trim()) formData.append("alt", uploadAlt.trim());
+      if (uploadCaption.trim()) formData.append("caption", uploadCaption.trim());
       const res = await uploadFile("/media", formData);
       const data = await res.json();
       if (!res.ok) {
@@ -56,6 +58,7 @@ export function MediaPickerModal({ onSelect, onClose }: Props) {
       }
       setMedia((prev) => [data as MediaDTO, ...(prev ?? [])]);
       setUploadAlt("");
+      setUploadCaption("");
     } catch {
       setError("ネットワークエラーによりアップロードに失敗しました。");
     } finally {
@@ -111,6 +114,13 @@ export function MediaPickerModal({ onSelect, onClose }: Props) {
             value={uploadAlt}
             onChange={(e) => setUploadAlt(e.target.value)}
             placeholder="代替テキスト（alt・任意）"
+            style={{ flex: 1, minWidth: "160px" }}
+          />
+          <input
+            type="text"
+            value={uploadCaption}
+            onChange={(e) => setUploadCaption(e.target.value)}
+            placeholder="キャプション（任意）"
             style={{ flex: 1, minWidth: "160px" }}
           />
         </div>

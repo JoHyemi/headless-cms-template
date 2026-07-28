@@ -8,6 +8,7 @@ export function MediaUploadForm() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [alt, setAlt] = useState("");
+  const [caption, setCaption] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,6 +24,7 @@ export function MediaUploadForm() {
       const formData = new FormData();
       formData.append("file", file);
       if (alt.trim()) formData.append("alt", alt.trim());
+      if (caption.trim()) formData.append("caption", caption.trim());
       const res = await uploadFile("/media", formData);
       const data = await res.json();
       if (!res.ok) {
@@ -31,6 +33,7 @@ export function MediaUploadForm() {
       }
       if (inputRef.current) inputRef.current.value = "";
       setAlt("");
+      setCaption("");
       router.refresh();
     } catch {
       setError("ネットワークエラーによりアップロードに失敗しました。");
@@ -48,6 +51,13 @@ export function MediaUploadForm() {
         value={alt}
         onChange={(e) => setAlt(e.target.value)}
         placeholder="代替テキスト（alt・任意）"
+        style={{ flex: 1, minWidth: "200px" }}
+      />
+      <input
+        type="text"
+        value={caption}
+        onChange={(e) => setCaption(e.target.value)}
+        placeholder="キャプション（任意）"
         style={{ flex: 1, minWidth: "200px" }}
       />
       <button type="submit" className="btn btn-primary" disabled={submitting}>

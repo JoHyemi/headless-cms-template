@@ -23,6 +23,7 @@ export type MediaDTO = {
   mimeType: string;
   size: number;
   alt: string | null;
+  caption: string | null;
   createdAt: string;
 };
 
