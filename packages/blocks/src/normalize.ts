@@ -1,4 +1,4 @@
-import type { Block } from "./types";
+import { FIELD_TYPES, type Block, type FieldDef } from "./types";
 
 function isString(value: unknown): value is string {
   return typeof value === "string";
@@ -7,6 +7,26 @@ function isString(value: unknown): value is string {
 /** http(s)またはサイト内部パスのみ許可します。javascript:のような危険なスキームを防ぐためです。 */
 function isSafeImageUrl(url: string): boolean {
   return /^https?:\/\//i.test(url) || url.startsWith("/");
+}
+
+/** カスタムブロックのfields定義(FieldDef)1件の形を検査します。 */
+export function isFieldDef(value: unknown): value is FieldDef {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    isString(v.key) &&
+    v.key.trim().length > 0 &&
+    isString(v.label) &&
+    v.label.trim().length > 0 &&
+    FIELD_TYPES.includes(v.type as (typeof FIELD_TYPES)[number]) &&
+    (v.required === undefined || typeof v.required === "boolean")
+  );
+}
+
+/** BlockType.fieldsに保存するFieldDef配列全体を検査します。空配列は意味のあるブロックタイプに
+ *  ならないため許可しません。 */
+export function isFieldDefArray(value: unknown): value is FieldDef[] {
+  return Array.isArray(value) && value.length > 0 && value.every(isFieldDef);
 }
 
 /** 値がBlock型の形(shape)を満たしているかだけを検査します。空文字列などの「内容なし」は許容し、
@@ -30,6 +50,20 @@ export function isBlock(value: unknown): value is Block {
       return isString(v.text) && (v.cite === undefined || isString(v.cite));
     case "image":
       return isString(v.url) && isString(v.alt) && (v.caption === undefined || isString(v.caption));
+    case "custom":
+      return (
+        isString(v.blockType) &&
+        v.blockType.trim().length > 0 &&
+        typeof v.fields === "object" &&
+        v.fields !== null &&
+        !Array.isArray(v.fields) &&
+        Object.values(v.fields as Record<string, unknown>).every(
+          (fieldValue) =>
+            typeof fieldValue === "string" ||
+            typeof fieldValue === "number" ||
+            typeof fieldValue === "boolean"
+        )
+      );
     default:
       return false;
   }
@@ -53,6 +87,10 @@ export function hasContent(block: Block): boolean {
       const url = block.url.trim();
       return url.length > 0 && isSafeImageUrl(url);
     }
+    case "custom":
+      return Object.values(block.fields).some((value) =>
+        typeof value === "string" ? value.trim().length > 0 : true
+      );
   }
 }
 
@@ -75,6 +113,15 @@ export function normalizeBlocks(blocks: Block[]): Block[] {
             alt: block.alt.trim(),
             caption: block.caption?.trim() || undefined,
           };
+        case "custom": {
+          const fields = Object.fromEntries(
+            Object.entries(block.fields).map(([key, value]) => [
+              key,
+              typeof value === "string" ? value.trim() : value,
+            ])
+          );
+          return { ...block, fields };
+        }
       }
     })
     .filter(hasContent);

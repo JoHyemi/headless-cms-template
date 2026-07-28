@@ -8,9 +8,38 @@ export type ListBlock = { type: "list"; style: "ordered" | "unordered"; items: s
 export type QuoteBlock = { type: "quote"; text: string; cite?: string };
 export type ImageBlock = { type: "image"; url: string; alt: string; caption?: string };
 
-export type Block = ParagraphBlock | HeadingBlock | ListBlock | QuoteBlock | ImageBlock;
+// カスタムブロック(ACFのフィールドグループに相当)。管理画面でフィールド構成(FieldDef[])だけを
+// 定義でき、そのフィールドをどんな見た目で描画するかは開発者がBlockRenderer/blocksToHtmlの
+// カスタムレンダラーとして別途登録する(未登録の場合はラベル:値のリストとして安全に表示される)。
+// これにより「自由なHTMLテンプレートを保存して差し込む」方式(=保存段階でのXSSの温床)を避けている。
+export type FieldType = "text" | "textarea" | "number" | "boolean" | "url" | "image";
 
-export const BLOCK_TYPES: Block["type"][] = ["paragraph", "heading", "list", "quote", "image"];
+export type FieldDef = {
+  key: string;
+  label: string;
+  type: FieldType;
+  required?: boolean;
+};
+
+export type FieldValue = string | number | boolean;
+
+export type CustomBlock = {
+  type: "custom";
+  blockType: string; // BlockTypeのslug
+  fields: Record<string, FieldValue>;
+};
+
+export type Block = ParagraphBlock | HeadingBlock | ListBlock | QuoteBlock | ImageBlock | CustomBlock;
+
+// "custom"はBlockType(DBに保存された可変のカスタムブロック定義)ごとに動的に増えるため、
+// 固定の追加ボタン一覧であるBLOCK_TYPESには含めない。
+export const BLOCK_TYPES: Exclude<Block["type"], "custom">[] = [
+  "paragraph",
+  "heading",
+  "list",
+  "quote",
+  "image",
+];
 
 export const BLOCK_TYPE_LABELS: Record<Block["type"], string> = {
   paragraph: "段落",
@@ -18,9 +47,38 @@ export const BLOCK_TYPE_LABELS: Record<Block["type"], string> = {
   list: "リスト",
   quote: "引用",
   image: "画像",
+  custom: "カスタムブロック",
 };
 
-export function emptyBlock(type: Block["type"]): Block {
+export const FIELD_TYPES: FieldType[] = ["text", "textarea", "number", "boolean", "url", "image"];
+
+export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
+  text: "テキスト(1行)",
+  textarea: "テキスト(複数行)",
+  number: "数値",
+  boolean: "はい/いいえ",
+  url: "URL",
+  image: "画像URL",
+};
+
+export function defaultFieldValue(type: FieldType): FieldValue {
+  switch (type) {
+    case "number":
+      return 0;
+    case "boolean":
+      return false;
+    default:
+      return "";
+  }
+}
+
+export function emptyCustomBlock(blockType: string, fields: FieldDef[]): CustomBlock {
+  const values: Record<string, FieldValue> = {};
+  for (const field of fields) values[field.key] = defaultFieldValue(field.type);
+  return { type: "custom", blockType, fields: values };
+}
+
+export function emptyBlock(type: Exclude<Block["type"], "custom">): Block {
   switch (type) {
     case "paragraph":
       return { type: "paragraph", text: "" };

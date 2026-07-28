@@ -5,7 +5,7 @@ import { FormEvent, SyntheticEvent, useState } from "react";
 import { BlockRenderer, defaultBlocks, hasContent, normalizeBlocks, type Block } from "@cms/blocks";
 import { BlockEditor } from "@/components/BlockEditor";
 import { apiFetch } from "@/lib/api-client";
-import type { CategoryDTO, PostDTO } from "@/types/api";
+import type { BlockTypeDTO, CategoryDTO, PostDTO } from "@/types/api";
 
 const WEBSITE_URL = process.env.NEXT_PUBLIC_WEBSITE_URL ?? "http://localhost:3000";
 
@@ -13,10 +13,11 @@ type Props = {
   mode: "create" | "edit";
   post?: PostDTO;
   allCategories: CategoryDTO[];
+  blockTypes?: BlockTypeDTO[];
 };
 
 // 記事作成/修正共用フォーム。API(/posts)を呼び出して保存します。
-export function PostForm({ mode, post, allCategories }: Props) {
+export function PostForm({ mode, post, allCategories, blockTypes = [] }: Props) {
   const router = useRouter();
   const [title, setTitle] = useState(post?.title ?? "");
   const [blocks, setBlocks] = useState<Block[]>(post ? post.content : defaultBlocks());
@@ -176,7 +177,7 @@ export function PostForm({ mode, post, allCategories }: Props) {
 
           <div className="field">
             <label>本文</label>
-            <BlockEditor blocks={blocks} onChange={setBlocks} />
+            <BlockEditor blocks={blocks} onChange={setBlocks} blockTypes={blockTypes} />
           </div>
 
           <div className="field">

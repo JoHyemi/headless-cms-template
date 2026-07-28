@@ -8,6 +8,7 @@ import { PostsModule } from "./posts/posts.module";
 import { CategoriesModule } from "./categories/categories.module";
 import { PagesModule } from "./pages/pages.module";
 import { MediaModule } from "./media/media.module";
+import { BlockTypesModule } from "./block-types/block-types.module";
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { MediaModule } from "./media/media.module";
     CategoriesModule,
     PagesModule,
     MediaModule,
+    BlockTypesModule,
   ],
 })
 export class AppModule {}

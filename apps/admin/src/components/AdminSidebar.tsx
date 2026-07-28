@@ -12,6 +12,7 @@ const menuItems = [
   { href: "/posts/new", label: "新規投稿", icon: "➕" },
   { href: "/categories", label: "カテゴリー管理", icon: "🗂️" },
   { href: "/media", label: "メディア", icon: "🖼️" },
+  { href: "/block-types", label: "カスタムブロック", icon: "🧩" },
 ];
 
 export function AdminSidebar() {
@@ -36,7 +37,9 @@ export function AdminSidebar() {
           const isActive =
             item.href === "/posts"
               ? pathname === "/posts" || /^\/posts\/[^/]+\/edit/.test(pathname)
-              : pathname === item.href;
+              : item.href === "/block-types"
+                ? pathname === "/block-types" || pathname.startsWith("/block-types/")
+                : pathname === item.href;
 
           return (
             <Link

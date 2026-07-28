@@ -17,14 +17,15 @@ enum ContentStatus {
 
 // 将来のマルチサイト拡張のための場所。V1ではこのテーブルに行が1つだけ存在します。
 model Site {
-  id         String     @id @default(cuid())
+  id         String      @id @default(cuid())
   name       String
-  domain     String     @unique
-  createdAt  DateTime   @default(now())
+  domain     String      @unique
+  createdAt  DateTime    @default(now())
   posts      Post[]
   categories Category[]
   pages      Page[]
   media      Media[]
+  blockTypes BlockType[]
 }
 
 // 管理者ログインアカウント。V1では1サイトに管理者1名のみを想定します(権限/ロールの区別なし)。
@@ -97,6 +98,23 @@ model Media {
   alt       String?
   createdAt DateTime @default(now())
   posts     Post[]
+
+  @@index([siteId])
+}
+
+// ACFのフィールドグループに相当するカスタムブロックの定義。管理画面でfields(FieldDef[]、
+// packages/blocks参照)だけを構成でき、実際の見た目(HTML/デザイン)はfieldsの値を
+// BlockRenderer/blocksToHtmlのカスタムレンダラーとして開発者が別途登録して描画する。
+// 未登録のブロックタイプでもラベル:値のリストとして安全にフォールバック表示される。
+model BlockType {
+  id        String   @id @default(cuid())
+  site      Site     @relation(fields: [siteId], references: [id])
+  siteId    String
+  name      String
+  slug      String   @unique
+  fields    Json // FieldDef[](packages/blocks参照)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([siteId])
 }

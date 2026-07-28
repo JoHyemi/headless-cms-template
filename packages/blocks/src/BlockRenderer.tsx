@@ -1,8 +1,41 @@
-import type { Block } from "./types";
+import type { ReactNode } from "react";
+import type { Block, FieldValue } from "./types";
+
+/** カスタムブロックをJSXで描画するコンポーネントをブロックタイプのslugごとに登録するための型。 */
+export type CustomBlockComponents = Record<
+  string,
+  (props: { fields: Record<string, FieldValue> }) => ReactNode
+>;
+
+/** 対応するコンポーネントが登録されていないカスタムブロックのフォールバック表示。
+ *  値はJSXが自動でエスケープするため、未知のブロックタイプでも安全にラベル:値として表示できる。 */
+function CustomBlockFallback({ blockType, fields }: { blockType: string; fields: Record<string, FieldValue> }) {
+  const entries = Object.entries(fields).filter(([, value]) => value !== "" && value !== undefined);
+  if (entries.length === 0) return null;
+  return (
+    <dl className="custom-block" data-block-type={blockType}>
+      {entries.map(([key, value]) => (
+        <div key={key}>
+          <dt>{key}</dt>
+          <dd>{String(value)}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
 
 // ブロック配列をJSXで直接レンダリングします。テキストはReactが自動でエスケープするため、
 // dangerouslySetInnerHTMLを使わなくても安全に表示されます。
-export function BlockRenderer({ blocks }: { blocks: Block[] }) {
+//
+// customComponentsはブロックタイプのslugごとにJSXコンポーネントを登録するための拡張ポイント。
+// 未登録のslugはCustomBlockFallback(ラベル:値のリスト)で表示される。
+export function BlockRenderer({
+  blocks,
+  customComponents = {},
+}: {
+  blocks: Block[];
+  customComponents?: CustomBlockComponents;
+}) {
   return (
     <div className="block-content">
       {blocks.map((block, index) => {
@@ -44,6 +77,19 @@ export function BlockRenderer({ blocks }: { blocks: Block[] }) {
                 {block.caption && <figcaption className="muted">{block.caption}</figcaption>}
               </figure>
             ) : null;
+
+          case "custom": {
+            const Custom = customComponents[block.blockType];
+            return (
+              <div key={index}>
+                {Custom ? (
+                  <Custom fields={block.fields} />
+                ) : (
+                  <CustomBlockFallback blockType={block.blockType} fields={block.fields} />
+                )}
+              </div>
+            );
+          }
         }
       })}
     </div>

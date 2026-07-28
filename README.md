@@ -142,6 +142,14 @@ model Media {
   mimeType String
   size     Int
 }
+
+model BlockType {
+  id     String @id @default(cuid())
+  siteId String
+  name   String
+  slug   String @unique
+  fields Json   // FieldDef[](packages/blocks参照) — カスタムブロックのフィールド構成
+}
 ```
 
 ### コンテンツはブロックとして保存されます
@@ -150,6 +158,21 @@ model Media {
 (段落/見出し/リスト/引用/画像、`packages/blocks`)の配列です。画面に表示する際も
 `BlockRenderer`がJSXで直接描画するため、`dangerouslySetInnerHTML`は使いません — 本文に
 `<script>`のような文字列を入れても、コードとして実行されず文字通りエスケープされて出力されます。
+
+### カスタムブロック(ACFのフィールドグループに相当)
+
+管理画面の「カスタムブロック」画面(`/block-types`)で、ACFの「フィールドグループ」のように
+ブロックごとのフィールド構成(`FieldDef[]`: キー・ラベル・型・必須)だけを定義できます。
+定義すると記事編集画面のブロック一覧に「+ ブロック名」として追加され、フィールド型
+(テキスト/複数行テキスト/数値/はい・いいえ/URL/画像URL)に応じた入力フォームが自動生成されます。
+
+自由なHTMLテンプレートを保存して値をそこに差し込む方式(ACFで言えば独自にHTML文字列を組み立てる
+ようなやり方)は、保存されたテキストがそのままタグとして解釈されうるXSSの温床になるため採用して
+いません。フィールドの値をどんな見た目(HTML/デザイン)で描画するかは、開発者が
+`BlockRenderer`(JSX、admin/website共通)と`blocksToHtml`(外部向けHTML文字列)に
+ブロックタイプのslugをキーとしたレンダラーを登録して決めます。レンダラー未登録のブロック
+タイプは、すべての値をエスケープした上でラベル:値のリストとして安全にフォールバック表示されます
+(コードとして実行されることはありません)。
 
 ## REST API
 
@@ -166,6 +189,7 @@ model Media {
 | POST/PATCH/DELETE | `/categories(/:id)` | ✅ | カテゴリーの作成/更新/削除 |
 | GET/POST/PATCH/DELETE | `/pages(/:id)` | 一部 | Postと同じパターン(カテゴリー・作成者なし) |
 | GET/POST/DELETE | `/media(/:id)` | ✅ | ファイルのアップロード(`multipart/form-data`)/一覧/削除 |
+| GET/POST/PATCH/DELETE | `/block-types(/:id)` | ✅ | カスタムブロックのフィールド構成の作成/更新/削除・一覧取得(管理画面専用) |
 | POST | `/auth/login` | - | `{ email, password }` → セッションクッキー(JWT, httpOnly)を発行 |
 | POST | `/auth/logout` | - | セッションクッキーを削除 |
 | GET | `/auth/me` | ✅ | 現在ログイン中のユーザーを確認 |
@@ -205,12 +229,14 @@ curl -b cookies.txt -X POST http://localhost:4000/posts \
   保存前のプレビュー、公開済み記事は公開サイトへ直接移動できるリンクを提供します。
 - **カテゴリー管理**(`/categories`): 作成/削除。
 - **メディア**(`/media`): ファイルのアップロード、一覧、削除。
+- **カスタムブロック**(`/block-types`): ACFの「フィールドグループ」に相当するカスタムブロックの
+  フィールド構成を作成/修正/削除。作成したブロックは記事編集画面のブロック一覧にすぐ追加されます。
 
 ## V1の範囲
 
 `structure.md`に明記されている通り、今回のV1では**シンプルさと保守性**を優先します。
 
-- ✅ 含まれるもの: ログイン、Post、Page、Media、Category、API、Website
+- ✅ 含まれるもの: ログイン、Post、Page、Media、Category、カスタムブロック(ACFスタイル)、API、Website
 - ❌ 含まれないもの: Plugin、Theme、Multi-Site切り替えUI
 - 🔜 次の候補: Custom Post Type、Workflow、Version History
 

@@ -1,4 +1,12 @@
-import type { Block } from "@cms/blocks";
+import type { Block, FieldDef } from "@cms/blocks";
+
+export type BlockTypeDTO = {
+  id: string;
+  name: string;
+  slug: string;
+  fields: FieldDef[];
+  createdAt: string;
+};
 
 export type CategoryDTO = {
   id: string;
