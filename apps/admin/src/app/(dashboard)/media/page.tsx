@@ -1,10 +1,10 @@
 import { serverApiFetch } from "@/lib/api-server";
+import { API_URL } from "@/lib/api-client";
 import { MediaUploadForm } from "@/components/MediaUploadForm";
 import { MediaActions } from "@/components/MediaActions";
 import { MediaMetaForm } from "@/components/MediaMetaForm";
+import { MediaUrlField } from "@/components/MediaUrlField";
 import type { MediaDTO } from "@/types/api";
-
-const API_URL = process.env.API_URL ?? "http://localhost:4000";
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -27,7 +27,7 @@ export default async function MediaPage() {
       {media.length === 0 ? (
         <p className="empty-state">まだアップロードされたファイルがありません。</p>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "1rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "1rem" }}>
           {media.map((item) => (
             <div key={item.id} className="card" style={{ marginBottom: 0 }}>
               {item.mimeType.startsWith("image/") ? (
@@ -46,6 +46,7 @@ export default async function MediaPage() {
               <p className="muted" style={{ fontSize: "0.8rem", marginBottom: "0.75rem" }}>
                 {formatSize(item.size)}
               </p>
+              <MediaUrlField url={`${API_URL}${item.url}`} />
               {item.mimeType.startsWith("image/") && (
                 <MediaMetaForm id={item.id} initialAlt={item.alt} initialCaption={item.caption} />
               )}
