@@ -9,6 +9,7 @@ import {
   type FieldDef,
   type FieldValue,
 } from "@cms/blocks";
+import { ImageUrlField } from "@/components/ImageUrlField";
 import type { BlockTypeDTO } from "@/types/api";
 
 type Props = {
@@ -199,13 +200,9 @@ function BlockFields({
     case "image":
       return (
         <>
-          <input
-            type="text"
-            value={block.url}
-            onChange={(e) => onChange({ ...block, url: e.target.value })}
-            placeholder="画像URL（https://... のみ使用できます）"
-            style={{ marginBottom: "0.5rem" }}
-          />
+          <div style={{ marginBottom: "0.5rem" }}>
+            <ImageUrlField value={block.url} onChange={(url) => onChange({ ...block, url })} />
+          </div>
           <input
             type="text"
             value={block.alt}
@@ -319,11 +316,9 @@ function CustomFieldInput({
       return (
         <div className="field">
           <label>{label}</label>
-          <input
-            type="text"
+          <ImageUrlField
             value={typeof value === "string" ? value : ""}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="画像URL（https://... のみ使用できます）"
+            onChange={(url) => onChange(url)}
           />
         </div>
       );
