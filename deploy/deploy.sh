@@ -15,7 +15,7 @@ log() { printf '\n\033[1;32m==> %s\033[0m\n' "$1"; }
 
 for f in apps/api/.env apps/admin/.env.production apps/website/.env.production; do
   if [ ! -f "$f" ]; then
-    echo "ERROR: $f がありません。deploy/DEPLOY.md の「3. 環境変数」を先に進めてください。" >&2
+    echo "ERROR: $f がありません。deploy/DEPLOY.md の「4. 環境変数」を先に進めてください。" >&2
     exit 1
   fi
 done

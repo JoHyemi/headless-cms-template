@@ -115,7 +115,7 @@ cat <<EOF
 
  次の順序で進めてください:
    1) git clone <repo> $APP_DIR
-   2) deploy/DEPLOY.md の「3. 環境変数」の通りに.envを3つ作成
+   2) deploy/DEPLOY.md の「4. 環境変数」の通りに.envを3つ作成
    3) bash deploy/deploy.sh
 ============================================================
 
