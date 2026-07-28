@@ -79,9 +79,9 @@ Adminも結局はAPIの数ある消費者の一つに過ぎません — 記事�
 # 1. Nodeバージョンを合わせる
 nvm use
 
-# 2. PostgreSQLを起動(Docker Compose)
+# 2. PostgreSQLを起動(Docker Compose。adminerも一緒に起動します)
 cp .env.example .env
-docker compose up -d db
+docker compose up -d
 
 # 3. 依存関係のインストール(モノレポ全体: admin/api/website/packages)
 npm install
@@ -304,7 +304,7 @@ curl -b cookies.txt -X POST http://localhost:4000/posts \
 
 - ✅ 含まれるもの: ログイン、Post、Page、Media、Category、カスタムブロック(ACFスタイル)、API、Website
 - ❌ 含まれないもの: Plugin、Theme、Multi-Site切り替えUI
-- 🔜 次の候補: Custom Post Type、Workflow、Version History、Pageの管理画面UI
+- 🔜 次の候補: [`SPEC.md`](./SPEC.md) の12章(今後検討する機能)を参照
 
 その他の既知の制限事項:
 
