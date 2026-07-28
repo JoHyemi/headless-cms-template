@@ -16,6 +16,30 @@ import type { BlockTypeDTO, CategoryDTO, PostDTO } from "@/types/api";
 
 const WEBSITE_URL = process.env.NEXT_PUBLIC_WEBSITE_URL ?? "http://localhost:3000";
 
+// カスタムブロックの必須フィールドが空のまま保存されると、hasContent()が「内容なし」と
+// 判断してブロックごと黙って削除してしまう(他のブロックと同じ扱い)。それ自体は既存の
+// 仕様通りだが、カスタムブロックの場合は警告なしに消えるとユーザーが気づけないため、
+// 保存前にここで検出してはっきりしたエラーメッセージを出す。
+function findMissingRequiredField(blocks: Block[], blockTypes: BlockTypeDTO[]): string | null {
+  for (const block of blocks) {
+    if (block.type !== "custom") continue;
+    const def = blockTypes.find((bt) => bt.slug === block.blockType);
+    if (!def) continue;
+
+    for (const field of def.fields) {
+      if (!field.required) continue;
+      if (field.type === "boolean" || field.type === "number") continue;
+
+      const value = block.fields[field.key];
+      const isEmpty = typeof value !== "string" || value.trim().length === 0;
+      if (isEmpty) {
+        return `「${def.name}」ブロックの「${field.label}」は必須です。入力するか、不要であればブロックを削除してください。`;
+      }
+    }
+  }
+  return null;
+}
+
 type Props = {
   mode: "create" | "edit";
   post?: PostDTO;
@@ -82,6 +106,12 @@ export function PostForm({ mode, post, allCategories, blockTypes = [] }: Props) 
   async function handleSubmit(e: FormEvent, publish?: boolean) {
     e.preventDefault();
     setError(null);
+
+    const missingFieldError = findMissingRequiredField(blocks, blockTypes);
+    if (missingFieldError) {
+      setError(missingFieldError);
+      return;
+    }
 
     const cleanedBlocks = normalizeBlocks(blocks);
     if (cleanedBlocks.length === 0) {
