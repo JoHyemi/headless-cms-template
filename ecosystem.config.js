@@ -11,14 +11,16 @@ module.exports = {
     {
       name: "cms-admin",
       cwd: "./apps/admin",
-      script: "node_modules/.bin/next",
+      // npm workspaces가 next를 모노레포 루트로 호이스팅하므로 apps/admin/node_modules/.bin/next는
+      // 존재하지 않습니다. 루트에 설치된 실제 진입점을 직접 가리켜야 pm2가 기동합니다.
+      script: "../../node_modules/next/dist/bin/next",
       args: "start -p 3001",
       env: { NODE_ENV: "production" },
     },
     {
       name: "cms-website",
       cwd: "./apps/website",
-      script: "node_modules/.bin/next",
+      script: "../../node_modules/next/dist/bin/next",
       args: "start -p 3000",
       env: { NODE_ENV: "production" },
     },

@@ -51,3 +51,7 @@ apps/api/dist
 # apps/api: 업로드된 미디어 파일 (파일 자체는 배포 서버 로컬 디스크에만 존재)
 apps/api/uploads/*
 !apps/api/uploads/.gitkeep
+
+# deploy/local-demo.sh 실행 중 생성되는 로그/PID 파일
+deploy/.logs/
+deploy/.demo-pids

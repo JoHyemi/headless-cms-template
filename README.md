@@ -229,6 +229,31 @@ curl -b cookies.txt -X POST http://localhost:4000/posts \
 SSH接続し、`pm2`(`ecosystem.config.js`参照)で再起動する**テンプレート**です。実サーバーが
 なければbuild jobまでが実行され、deploy jobは自動的にスキップされます。
 
+### 対面デモ — サーバーなしでローカル + トンネルだけで見せる
+
+サーバー契約もドメインもなしで、ノートPCで直接アプリを起動し、
+[cloudflared](https://github.com/cloudflare/cloudflared)の一時トンネルで公開URLだけ
+発行して見せる方法です。参加者が自分のスマホ/PCで直接URLを開いて確認できます
+(画面共有だけで十分な場では`npm run dev`のままで問題ありません)。
+
+```bash
+brew install cloudflared   # 未インストールならスクリプトが自動でインストールを試みます
+bash deploy/local-demo.sh
+```
+
+5〜10分ほどでビルドが終わり、公開サイト用・管理画面用の2つの一時URLが表示されます。
+ログイン情報は`apps/api/.env`の`ADMIN_EMAIL`/`ADMIN_PASSWORD`です。終了する際は:
+
+```bash
+bash deploy/local-demo-stop.sh
+```
+
+cloudflaredの無料トンネルはドメインが毎回ランダムに発行されるため、管理画面・APIが
+別ドメイン扱いになりセッションクッキーがそのままでは効きません。このスクリプトは
+api起動時にだけ`COOKIE_SAME_SITE=none`をインライン環境変数として渡してこれを回避
+しており、`.env`ファイル自体は変更しないため通常の開発・デプロイには影響しません。
+詳細な手順やトラブルシューティングは`deploy/LOCAL_DEMO.md`を参照してください。
+
 ## 新しいサイト(顧客企業)を作る
 
 このリポジトリをGitHubの**「Use this template」**機能で複製し、`company-a`、`company-b`の
