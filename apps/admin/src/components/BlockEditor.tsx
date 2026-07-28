@@ -5,9 +5,11 @@ import {
   BLOCK_TYPES,
   emptyBlock,
   emptyCustomBlock,
+  emptyGalleryImageItem,
   type Block,
   type FieldDef,
   type FieldValue,
+  type GalleryImageItem,
 } from "@cms/blocks";
 import { ImageUrlField } from "@/components/ImageUrlField";
 import type { BlockTypeDTO } from "@/types/api";
@@ -222,6 +224,96 @@ function BlockFields({
           />
         </>
       );
+
+    case "gallery": {
+      const galleryBlock = block;
+
+      function updateImage(i: number, next: GalleryImageItem) {
+        onChange({
+          ...galleryBlock,
+          images: galleryBlock.images.map((img, idx) => (idx === i ? next : img)),
+        });
+      }
+
+      function addImage() {
+        onChange({ ...galleryBlock, images: [...galleryBlock.images, emptyGalleryImageItem()] });
+      }
+
+      function removeImage(i: number) {
+        onChange({ ...galleryBlock, images: galleryBlock.images.filter((_, idx) => idx !== i) });
+      }
+
+      function moveImage(i: number, direction: -1 | 1) {
+        const target = i + direction;
+        if (target < 0 || target >= galleryBlock.images.length) return;
+        const next = [...galleryBlock.images];
+        [next[i], next[target]] = [next[target], next[i]];
+        onChange({ ...galleryBlock, images: next });
+      }
+
+      return (
+        <>
+          {galleryBlock.images.map((image, i) => (
+            <div
+              key={i}
+              style={{
+                border: "1px solid var(--border)",
+                borderRadius: "10px",
+                padding: "0.75rem",
+                marginBottom: "0.5rem",
+              }}
+            >
+              <div className="actions-row" style={{ marginBottom: "0.5rem", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => moveImage(i, -1)}
+                  disabled={i === 0}
+                  aria-label="上へ移動"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => moveImage(i, 1)}
+                  disabled={i === galleryBlock.images.length - 1}
+                  aria-label="下へ移動"
+                >
+                  ↓
+                </button>
+                <button type="button" className="btn btn-danger" onClick={() => removeImage(i)}>
+                  削除
+                </button>
+              </div>
+              <div style={{ marginBottom: "0.5rem" }}>
+                <ImageUrlField
+                  value={image.url}
+                  onChange={(url) => updateImage(i, { ...image, url })}
+                  onPick={({ url, alt, caption }) => updateImage(i, { ...image, url, alt, caption })}
+                />
+              </div>
+              <input
+                type="text"
+                value={image.alt}
+                onChange={(e) => updateImage(i, { ...image, alt: e.target.value })}
+                placeholder="代替テキスト（alt）"
+                style={{ marginBottom: "0.5rem" }}
+              />
+              <input
+                type="text"
+                value={image.caption ?? ""}
+                onChange={(e) => updateImage(i, { ...image, caption: e.target.value })}
+                placeholder="キャプション（任意）"
+              />
+            </div>
+          ))}
+          <button type="button" className="btn" onClick={addImage}>
+            + 画像を追加
+          </button>
+        </>
+      );
+    }
 
     case "custom": {
       const customBlock = block;

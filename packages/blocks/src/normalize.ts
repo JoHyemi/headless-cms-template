@@ -22,6 +22,12 @@ export function resolveMediaUrl(url: string, baseUrl?: string): string {
   return `${baseUrl}${url}`;
 }
 
+function isGalleryImageItem(value: unknown): value is { url: string; alt: string; caption?: string } {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return isString(v.url) && isString(v.alt) && (v.caption === undefined || isString(v.caption));
+}
+
 /** カスタムブロックのfields定義(FieldDef)1件の形を検査します。 */
 export function isFieldDef(value: unknown): value is FieldDef {
   if (typeof value !== "object" || value === null) return false;
@@ -63,6 +69,8 @@ export function isBlock(value: unknown): value is Block {
       return isString(v.text) && (v.cite === undefined || isString(v.cite));
     case "image":
       return isString(v.url) && isString(v.alt) && (v.caption === undefined || isString(v.caption));
+    case "gallery":
+      return Array.isArray(v.images) && v.images.every(isGalleryImageItem);
     case "custom":
       return (
         isString(v.blockType) &&
@@ -100,6 +108,11 @@ export function hasContent(block: Block): boolean {
       const url = block.url.trim();
       return url.length > 0 && isSafeUrl(url);
     }
+    case "gallery":
+      return block.images.some((image) => {
+        const url = image.url.trim();
+        return url.length > 0 && isSafeUrl(url);
+      });
     case "custom":
       return Object.values(block.fields).some((value) =>
         typeof value === "string" ? value.trim().length > 0 : true
@@ -126,6 +139,16 @@ export function normalizeBlocks(blocks: Block[]): Block[] {
             alt: block.alt.trim(),
             caption: block.caption?.trim() || undefined,
           };
+        case "gallery": {
+          const images = block.images
+            .map((image) => ({
+              url: image.url.trim(),
+              alt: image.alt.trim(),
+              caption: image.caption?.trim() || undefined,
+            }))
+            .filter((image) => image.url.length > 0 && isSafeUrl(image.url));
+          return { ...block, images };
+        }
         case "custom": {
           const fields = Object.fromEntries(
             Object.entries(block.fields).map(([key, value]) => [

@@ -13,6 +13,8 @@ export function blocksToPlainText(blocks: Block[]): string {
           return block.items.join(" ");
         case "image":
           return block.caption ?? block.alt;
+        case "gallery":
+          return block.images.map((image) => image.caption ?? image.alt).join(" ");
         case "custom":
           return Object.values(block.fields).join(" ");
       }
@@ -80,6 +82,16 @@ export function blocksToHtml(
           const caption = block.caption ? `<figcaption>${escapeHtml(block.caption)}</figcaption>` : "";
           const src = resolveMediaUrl(block.url, mediaBaseUrl);
           return `<figure><img src="${escapeHtml(src)}" alt="${escapeHtml(block.alt)}" />${caption}</figure>`;
+        }
+        case "gallery": {
+          const figures = block.images
+            .map((image) => {
+              const caption = image.caption ? `<figcaption>${escapeHtml(image.caption)}</figcaption>` : "";
+              const src = resolveMediaUrl(image.url, mediaBaseUrl);
+              return `<figure><img src="${escapeHtml(src)}" alt="${escapeHtml(image.alt)}" />${caption}</figure>`;
+            })
+            .join("");
+          return `<div class="gallery">${figures}</div>`;
         }
         case "custom": {
           const renderer = customRenderers[block.blockType];

@@ -300,6 +300,22 @@ a.badge-category:hover {
   border-radius: 12px;
 }
 
+.block-content .gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.block-content .gallery figure {
+  margin: 0;
+}
+
+.block-content .gallery img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
 .block-content ul,
 .block-content ol {
   padding-left: 1.5rem;

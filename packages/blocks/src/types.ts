@@ -8,6 +8,9 @@ export type ListBlock = { type: "list"; style: "ordered" | "unordered"; items: s
 export type QuoteBlock = { type: "quote"; text: string; cite?: string };
 export type ImageBlock = { type: "image"; url: string; alt: string; caption?: string };
 
+export type GalleryImageItem = { url: string; alt: string; caption?: string };
+export type GalleryBlock = { type: "gallery"; images: GalleryImageItem[] };
+
 // カスタムブロック(ACFのフィールドグループに相当)。管理画面でフィールド構成(FieldDef[])だけを
 // 定義でき、そのフィールドをどんな見た目で描画するかは開発者がBlockRenderer/blocksToHtmlの
 // カスタムレンダラーとして別途登録する(未登録の場合はラベル:値のリストとして安全に表示される)。
@@ -29,7 +32,14 @@ export type CustomBlock = {
   fields: Record<string, FieldValue>;
 };
 
-export type Block = ParagraphBlock | HeadingBlock | ListBlock | QuoteBlock | ImageBlock | CustomBlock;
+export type Block =
+  | ParagraphBlock
+  | HeadingBlock
+  | ListBlock
+  | QuoteBlock
+  | ImageBlock
+  | GalleryBlock
+  | CustomBlock;
 
 // "custom"はBlockType(DBに保存された可変のカスタムブロック定義)ごとに動的に増えるため、
 // 固定の追加ボタン一覧であるBLOCK_TYPESには含めない。
@@ -39,6 +49,7 @@ export const BLOCK_TYPES: Exclude<Block["type"], "custom">[] = [
   "list",
   "quote",
   "image",
+  "gallery",
 ];
 
 export const BLOCK_TYPE_LABELS: Record<Block["type"], string> = {
@@ -47,6 +58,7 @@ export const BLOCK_TYPE_LABELS: Record<Block["type"], string> = {
   list: "リスト",
   quote: "引用",
   image: "画像",
+  gallery: "画像ギャラリー",
   custom: "カスタムブロック",
 };
 
@@ -90,7 +102,13 @@ export function emptyBlock(type: Exclude<Block["type"], "custom">): Block {
       return { type: "quote", text: "", cite: "" };
     case "image":
       return { type: "image", url: "", alt: "", caption: "" };
+    case "gallery":
+      return { type: "gallery", images: [{ url: "", alt: "", caption: "" }] };
   }
+}
+
+export function emptyGalleryImageItem(): GalleryImageItem {
+  return { url: "", alt: "", caption: "" };
 }
 
 export function defaultBlocks(): Block[] {

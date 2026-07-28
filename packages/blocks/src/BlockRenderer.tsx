@@ -84,6 +84,22 @@ export function BlockRenderer({
               </figure>
             ) : null;
 
+          case "gallery": {
+            const images = block.images.filter((image) => image.url);
+            if (images.length === 0) return null;
+            return (
+              <div className="gallery" key={index}>
+                {images.map((image, i) => (
+                  <figure key={i}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={resolveMediaUrl(image.url, mediaBaseUrl)} alt={image.alt} />
+                    {image.caption && <figcaption className="muted">{image.caption}</figcaption>}
+                  </figure>
+                ))}
+              </div>
+            );
+          }
+
           case "custom": {
             const Custom = customComponents[block.blockType];
             return (

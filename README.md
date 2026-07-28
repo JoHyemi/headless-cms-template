@@ -156,8 +156,8 @@ model BlockType {
 
 ### コンテンツはブロックとして保存されます
 
-`Post.content`/`Page.content`は自由なテキストやHTMLではなく、決められた5種類のブロック
-(段落/見出し/リスト/引用/画像、`packages/blocks`)の配列です。画面に表示する際も
+`Post.content`/`Page.content`は自由なテキストやHTMLではなく、決められた6種類のブロック
+(段落/見出し/リスト/引用/画像/画像ギャラリー、`packages/blocks`)の配列です。画面に表示する際も
 `BlockRenderer`がJSXで直接描画するため、`dangerouslySetInnerHTML`は使いません — 本文に
 `<script>`のような文字列を入れても、コードとして実行されず文字通りエスケープされて出力されます。
 
