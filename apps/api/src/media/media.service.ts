@@ -37,7 +37,7 @@ export class MediaService {
     try {
       await unlink(join(process.cwd(), "uploads", media.url.replace("/uploads/", "")));
     } catch {
-      // 파일이 이미 없어도 DB 레코드는 정리합니다.
+      // ファイルがすでになくてもDBレコードは整理します。
     }
 
     await this.prisma.media.delete({ where: { id } });

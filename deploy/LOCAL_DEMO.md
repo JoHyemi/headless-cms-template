@@ -1,24 +1,24 @@
-# 대면 시연 — 로컬 + 터널 (서버/도메인 계약 없이)
+# 対面デモ — ローカル + トンネル(サーバー/ドメイン契約なし)
 
-노트북에서 앱을 직접 띄우고 cloudflared로 공개 URL만 임시로 뚫습니다.
-서버 계약, 도메인 구매, SSH 없이 오늘 안에 끝납니다.
+ノートPCで直接アプリを起動し、cloudflaredで公開URLだけを一時的に開きます。
+サーバー契約、ドメイン購入、SSHなしで今日中に終わります。
 
-전제: 시연이 **대면**이고, 참가자가 자기 폰/노트북으로 URL을 직접 눌러보게
-하고 싶은 경우. 화면만 공유하면 되는 자리라면 이것도 필요 없고
-`npm run dev`로 충분합니다.
+前提: デモが**対面**で、参加者に自分のスマホ/ノートPCでURLを直接開いて
+もらいたい場合。画面共有だけで済む場ならこれも不要で、
+`npm run dev`で十分です。
 
 ---
 
-## 사전 준비 (한 번만)
+## 事前準備(一度だけ)
 
 ```bash
-brew install cloudflared   # 없으면 스크립트가 자동으로 설치를 시도합니다
+brew install cloudflared   # なければスクリプトが自動でインストールを試みます
 ```
 
-Docker Desktop이 켜져 있어야 합니다 (로컬 Postgres용).
+Docker Desktopが起動している必要があります(ローカルPostgres用)。
 
-`apps/api/.env`가 이미 채워져 있어야 합니다 — 평소 `npm run dev`로 로컬
-개발하실 때 쓰던 그 파일 그대로면 됩니다. 없다면:
+`apps/api/.env`がすでに埋まっている必要があります — 普段`npm run dev`で
+ローカル開発する時に使っているそのファイルのままでOKです。なければ:
 
 ```bash
 cp apps/api/.env.example apps/api/.env
@@ -26,78 +26,79 @@ cp apps/api/.env.example apps/api/.env
 
 ---
 
-## 실행
+## 実行
 
 ```bash
 cd cms
 bash deploy/local-demo.sh
 ```
 
-5~10분 정도 걸립니다(빌드 2번 포함). 끝나면 이렇게 출력됩니다:
+5〜10分ほどかかります(ビルド2回含む)。終わるとこう出力されます:
 
 ```
-공개 사이트: https://random-word-word.trycloudflare.com
-관리자 화면: https://another-word.trycloudflare.com
+公開サイト: https://random-word-word.trycloudflare.com
+管理画面: https://another-word.trycloudflare.com
 ```
 
-이 두 URL을 참가자에게 그대로 공유하면 됩니다. QR코드로 만들어두면 더
-편합니다.
+この2つのURLをそのまま参加者に共有すればOKです。QRコードにしておくと
+より便利です。
 
-**로그인 정보**는 `apps/api/.env`의 `ADMIN_EMAIL` / `ADMIN_PASSWORD`입니다.
+**ログイン情報**は`apps/api/.env`の`ADMIN_EMAIL` / `ADMIN_PASSWORD`です。
 
 ---
 
-## 시연 중 확인해두면 좋은 것
+## デモ中に確認しておくとよいこと
 
-- [ ] 관리자 화면 URL에서 로그인이 실제로 됩니다 (아래 "로그인이 안 될 때" 참고)
-- [ ] 콘텐츠 작성 → 공개 사이트에 반영되는 흐름 한 번 해보기
-- [ ] 이미지 업로드 → 공개 사이트에 표시되는지
-- [ ] 본인 휴대폰(와이파이든 데이터든 상관없음)으로 URL 직접 열어보기
+- [ ] 管理画面のURLで実際にログインできる(下の「ログインできない時」参照)
+- [ ] コンテンツ作成 → 公開サイトに反映される流れを一度試す
+- [ ] 画像アップロード → 公開サイトに表示されるか
+- [ ] 自分のスマホ(Wi-Fiでもモバイル回線でもOK)でURLを直接開いてみる
 
 ---
 
-## 끝나면
+## 終わったら
 
 ```bash
 bash deploy/local-demo-stop.sh
 ```
 
-api/admin/website 프로세스와 터널 3개를 정리합니다. 로컬 Postgres 컨테이너는
-다음에 또 쓸 수 있게 그대로 둡니다. 완전히 끄려면 `docker compose down`.
+api/admin/websiteのプロセスとトンネル3つを片付けます。ローカルPostgres
+コンテナは次回も使えるようそのままにします。完全に止めるには`docker compose down`。
 
 ---
 
-## 왜 admin/website/api를 따로 터널링하나요
+## なぜadmin/website/apiを別々にトンネリングするのか
 
-cloudflared 무료 터널(quick tunnel)은 URL을 매번 랜덤으로 발급하고, 커스텀
-서브도메인을 지정할 수 없습니다. 그래서 세 개의 서로 다른 도메인이 생기는데,
-관리자 로그인은 세션 쿠키를 쓰기 때문에 이 상태로는 원래 로그인이 깨집니다
-(admin 도메인에서 보낸 요청에 api 도메인 쿠키가 안 실림). `local-demo.sh`가
-api 프로세스를 띄울 때 `COOKIE_SAME_SITE=none`을 인라인 환경변수로만
-넘겨서 이 경우에만 우회하도록 해뒀습니다 — `.env` 파일은 건드리지 않으므로
-평소 배포(`deploy/deploy.sh`)나 개발 환경에는 전혀 영향이 없습니다.
+cloudflaredの無料トンネル(quick tunnel)はURLを毎回ランダムに発行し、カスタム
+サブドメインを指定できません。そのため3つの異なるドメインができるのですが、
+管理者ログインはセッションクッキーを使うため、このままではログインが壊れます
+(adminドメインから送ったリクエストにapiドメインのクッキーが乗らない)。`local-demo.sh`が
+apiプロセスを起動する際に`COOKIE_SAME_SITE=none`をインライン環境変数としてだけ
+渡し、この場合だけ回避するようにしてあります — `.env`ファイルには手を加えないため、
+普段のデプロイ(`deploy/deploy.sh`)や開発環境には一切影響しません。
 
 ---
 
-## 문제 해결
+## トラブルシューティング
 
-**"cloudflared가 없습니다"** — `brew install cloudflared` 후 재실행.
+**「cloudflaredがありません」** — `brew install cloudflared` 後に再実行。
 
-**빌드 중간에 멈춤 / 느림** — Next.js 빌드 2개를 순차로 돌립니다. 노트북
-사양에 따라 각 1~3분 걸릴 수 있습니다. `deploy/.logs/` 안의 로그로 진행
-상황을 볼 수 있습니다.
+**ビルド途中で止まる/遅い** — Next.jsのビルドを2つ順番に実行します。ノートPCの
+スペックによって各1〜3分かかることがあります。`deploy/.logs/` 内のログで進行
+状況を確認できます。
 
-**터널 URL을 30초 안에 못 받음** — 사내망/방화벽이 아웃바운드 연결을
-막고 있을 수 있습니다. 카페·개인 핫스팟 등 다른 네트워크에서 재시도하세요.
+**トンネルURLを30秒以内に取得できない** — 社内ネットワーク/ファイアウォールが
+アウトバウンド接続をブロックしている可能性があります。カフェ・個人のホットスポットなど
+別のネットワークで再試行してください。
 
-**관리자 로그인 후 바로 로그아웃된 것처럼 보임** — 브라우저 콘솔에서
-`/auth/login` 응답에 `Set-Cookie`가 있는지, 다음 요청이 `401`인지 확인하세요.
-스크립트가 `COOKIE_SAME_SITE=none`을 넘기지 못했다면(수동으로 api를
-띄운 경우 등) 이 증상이 납니다.
+**管理者ログイン後すぐログアウトしたように見える** — ブラウザのコンソールで
+`/auth/login`のレスポンスに`Set-Cookie`があるか、次のリクエストが`401`かどうか確認してください。
+スクリプトが`COOKIE_SAME_SITE=none`を渡せなかった場合(手動でapiを
+起動した場合など)にこの症状が出ます。
 
-**"502" 또는 연결 안 됨** — api/admin/website 중 하나가 죽은 겁니다.
-`deploy/.logs/api.log`, `admin.log`, `website.log` 확인 후
-`bash deploy/local-demo-stop.sh` → `bash deploy/local-demo.sh` 재실행.
+**「502」または接続できない** — api/admin/websiteのいずれかが落ちています。
+`deploy/.logs/api.log`、`admin.log`、`website.log`を確認してから
+`bash deploy/local-demo-stop.sh` → `bash deploy/local-demo.sh` を再実行。
 
-**시연 도중 노트북이 잠자기 모드로** — 시스템 설정에서 "전원 어댑터 연결 시
-디스플레이 끄기 안 함"으로 잠깐 바꿔두세요. 잠들면 터널이 끊깁니다.
+**デモ中にノートPCがスリープモードに** — システム設定で「電源アダプタ接続時は
+ディスプレイをオフにしない」に一時的に変えておいてください。スリープするとトンネルが切れます。

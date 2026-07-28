@@ -1,7 +1,7 @@
 import type { Block } from "./types";
 
-// 블록 배열을 JSX로 직접 렌더링합니다. 텍스트는 React가 자동으로 이스케이프하므로
-// dangerouslySetInnerHTML 없이도 안전하게 표시됩니다.
+// ブロック配列をJSXで直接レンダリングします。テキストはReactが自動でエスケープするため、
+// dangerouslySetInnerHTMLを使わなくても安全に表示されます。
 export function BlockRenderer({ blocks }: { blocks: Block[] }) {
   return (
     <div className="block-content">

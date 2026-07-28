@@ -1,6 +1,6 @@
-// 블록 에디터의 콘텐츠 모델. Post/Page의 content 컬럼(Postgres Json)에는 이 Block[]을 그대로 저장합니다.
-// 자유 형식 HTML/Markdown 대신 정해진 블록 타입만 허용해, 저장 단계부터 임의 태그가
-// 끼어들 수 없도록 합니다 (본문 텍스트는 항상 이스케이프되어 렌더링됩니다).
+// ブロックエディタのコンテンツモデル。Post/Pageのcontentカラム(Postgres Json)にはこのBlock[]をそのまま保存します。
+// 自由形式のHTML/Markdownの代わりに決められたブロックタイプのみを許可し、保存段階から任意のタグが
+// 紛れ込めないようにしています(本文テキストは常にエスケープされてレンダリングされます)。
 
 export type ParagraphBlock = { type: "paragraph"; text: string };
 export type HeadingBlock = { type: "heading"; level: 2 | 3; text: string };

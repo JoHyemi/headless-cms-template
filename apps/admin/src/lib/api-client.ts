@@ -1,6 +1,6 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
-/** "use client" 컴포넌트에서 사용: 세션 쿠키를 credentials:"include"로 함께 보냅니다. */
+/** "use client"コンポーネントで使用: セッションクッキーをcredentials:"include"で一緒に送ります。 */
 export async function apiFetch(path: string, init: RequestInit = {}) {
   return fetch(`${API_URL}${path}`, {
     ...init,
@@ -12,8 +12,8 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
   });
 }
 
-/** 파일 업로드 전용: FormData를 쓸 때는 Content-Type을 브라우저가 자동으로
- *  (boundary 포함) 설정해야 하므로 apiFetch와 별도로 둡니다. */
+/** ファイルアップロード専用: FormDataを使う場合はContent-Typeをブラウザが自動で
+ *  (boundaryを含めて)設定する必要があるため、apiFetchとは別に用意します。 */
 export async function uploadFile(path: string, formData: FormData) {
   return fetch(`${API_URL}${path}`, {
     method: "POST",

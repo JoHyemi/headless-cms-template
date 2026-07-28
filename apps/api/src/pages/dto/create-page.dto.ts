@@ -6,7 +6,7 @@ export class CreatePageDto {
   @MinLength(1)
   title!: string;
 
-  // @IsArray()는 ValidationPipe의 whitelist가 데코레이터 없는 필드를 제거하는 것을 막기 위한 표시입니다.
+  // @IsArray()はValidationPipeのwhitelistがデコレータのないフィールドを削除するのを防ぐための目印です。
   @IsArray()
   content: unknown;
 

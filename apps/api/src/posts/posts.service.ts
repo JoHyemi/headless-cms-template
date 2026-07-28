@@ -146,7 +146,7 @@ export class PostsService {
     }
   }
 
-  /** 동일한 slug가 있으면 뒤에 -2, -3 ... 을 붙여 유일하게 만듭니다. */
+  /** 同じslugが既にあれば、末尾に-2, -3...を付けて一意にします。 */
   private async ensureUniqueSlug(baseSlug: string): Promise<string> {
     let candidate = baseSlug;
     let suffix = 2;

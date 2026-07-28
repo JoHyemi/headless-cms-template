@@ -1,7 +1,8 @@
-# structure.md의 배포 방식을 위한 템플릿 워크플로입니다.
-# main 브랜치에 push하면 3개 앱(admin/api/website)을 빌드하고, 시크릿이 설정되어 있으면
-# SSH로 서버에 배포합니다. deploy job은 SSH_HOST/SSH_USER/SSH_KEY 시크릿이 없으면
-# 자동으로 건너뜁니다 — 실제 서버가 준비되면 리포지토리 Settings > Secrets에 등록해주세요.
+# structure.mdのデプロイ方式に沿ったテンプレートワークフローです。
+# mainブランチにpushすると3つのアプリ(admin/api/website)をビルドし、シークレットが
+# 設定されていればSSHでサーバーにデプロイします。deploy jobはSSH_HOST/SSH_USER/SSH_KEY
+# シークレットがないと自動的にスキップされます — 実サーバーが用意できたらリポジトリの
+# Settings > Secretsに登録してください。
 name: Build and Deploy
 
 on:
@@ -24,8 +25,8 @@ jobs:
       - run: npm run build -w @cms/blocks
       - run: npm run prisma:generate -w @cms/api
         env:
-          # prisma generate는 실제로 DB에 접속하지 않고 스키마만 읽지만,
-          # prisma.config.ts가 로드 시점에 DATABASE_URL을 요구하므로 더미 값을 넣어준다.
+          # prisma generateは実際にはDBに接続せずスキーマだけを読むが、
+          # prisma.config.tsがロード時点でDATABASE_URLを要求するのでダミー値を入れておく。
           DATABASE_URL: "postgresql://user:password@localhost:5432/db"
       - run: npm run build -w @cms/api
       - run: npm run build -w @cms/admin
@@ -35,7 +36,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    # 시크릿이 없는 저장소(예: 이 템플릿을 처음 fork/생성한 상태)에서는 이 job을 건너뜁니다.
+    # シークレットがないリポジトリ(例: このテンプレートをfork/作成した直後の状態)ではこのjobをスキップします。
     if: ${{ vars.DEPLOY_ENABLED == 'true' }}
     steps:
       - uses: actions/checkout@v4

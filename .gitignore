@@ -30,7 +30,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (템플릿인 .env.example은 커밋 대상이므로 제외)
+# env files (テンプレートである.env.exampleはコミット対象なので除外)
 .env*
 !.env.example
 !apps/*/.env.example
@@ -38,7 +38,7 @@ yarn-error.log*
 # vercel
 .vercel
 
-# prisma (SQLite 로컬 DB 파일 — 구버전 단일 앱 시절 유물)
+# prisma (SQLiteのローカルDBファイル — 旧バージョン単一アプリ時代の遺物)
 /prisma/*.db
 /prisma/*.db-journal
 
@@ -46,14 +46,14 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# monorepo: 각 패키지/앱 빌드 산출물
+# モノレポ: 各パッケージ/アプリのビルド成果物
 packages/*/dist
 apps/api/dist
 
-# apps/api: 업로드된 미디어 파일 (파일 자체는 배포 서버 로컬 디스크에만 존재)
+# apps/api: アップロードされたメディアファイル(ファイル自体はデプロイサーバーのローカルディスクにのみ存在)
 apps/api/uploads/*
 !apps/api/uploads/.gitkeep
 
-# deploy/local-demo.sh 실행 중 생성되는 로그/PID 파일
+# deploy/local-demo.sh 実行中に生成されるログ/PIDファイル
 deploy/.logs/
 deploy/.demo-pids

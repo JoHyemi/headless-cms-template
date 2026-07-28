@@ -1,4 +1,4 @@
-// 헤더/사이드바에서 쓰는 브랜드 아이콘. app/icon.svg(파비콘)와 같은 디자인입니다.
+// ヘッダー/サイドバーで使うブランドアイコン。app/icon.svg(ファビコン)と同じデザインです。
 export function Logo({ size = 20 }: { size?: number }) {
   return (
     <svg

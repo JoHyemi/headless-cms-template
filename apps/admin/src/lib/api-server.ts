@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 
 const API_URL = process.env.API_URL ?? "http://localhost:4000";
 
-/** Server Component에서 사용: 브라우저의 세션 쿠키를 API로 그대로 전달해 인증된 요청을 보냅니다. */
+/** Server Componentで使用: ブラウザのセッションクッキーをAPIにそのまま転送して認証済みリクエストを送ります。 */
 export async function serverApiFetch(path: string, init: RequestInit = {}) {
   const cookieStore = await cookies();
   return fetch(`${API_URL}${path}`, {

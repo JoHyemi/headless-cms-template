@@ -2,9 +2,9 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from "@nestjs/co
 import type { Response } from "express";
 
 /**
- * Nest의 기본 에러 응답({ statusCode, message, error })을 우리 프론트엔드가 기대하는
- * { error: string } 형태로 통일합니다. class-validator의 ValidationPipe가 던지는
- * message: string[] 도 하나의 문자열로 합쳐줍니다.
+ * Nestのデフォルトのエラーレスポンス({ statusCode, message, error })を、フロントエンドが
+ * 期待する{ error: string }の形に統一します。class-validatorのValidationPipeが投げる
+ * message: string[]も1つの文字列にまとめます。
  */
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {

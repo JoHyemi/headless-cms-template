@@ -1,32 +1,32 @@
 # ---------------------------------------------------------------------------
-# /etc/caddy/Caddyfile 에 넣을 내용입니다.
+# /etc/caddy/Caddyfile に入れる内容です。
 #
-# example.com 세 군데를 실제 도메인으로 바꾸고:
+# example.comの3箇所を実際のドメインに置き換えて:
 #   sudo cp deploy/Caddyfile /etc/caddy/Caddyfile
 #   sudo systemctl reload caddy
 #
-# HTTPS 인증서는 Caddy가 Let's Encrypt에서 자동 발급/갱신합니다.
-# 단, 도메인 A 레코드가 이 서버 IP를 가리키고 있어야 발급됩니다.
-# 발급 실패 시: sudo journalctl -u caddy -n 50
+# HTTPS証明書はCaddyがLet's Encryptから自動発行/更新します。
+# ただし、ドメインのAレコードがこのサーバーのIPを指している必要があります。
+# 発行に失敗した場合: sudo journalctl -u caddy -n 50
 # ---------------------------------------------------------------------------
 
-# 공개 웹사이트
+# 公開Webサイト
 example.com, www.example.com {
 	encode gzip zstd
 	reverse_proxy localhost:3000
 }
 
-# 관리자 화면
+# 管理画面
 admin.example.com {
 	encode gzip zstd
 	reverse_proxy localhost:3001
 }
 
-# API — 업로드된 이미지(/uploads)도 이 호스트로 서빙됩니다
+# API — アップロードされた画像(/uploads)もこのホストで配信されます
 api.example.com {
 	encode gzip zstd
 
-	# 미디어 업로드 용량 제한 (기본값이 낮으면 큰 이미지가 413으로 막힙니다)
+	# メディアアップロードの容量制限(デフォルト値が低いと大きい画像が413で弾かれます)
 	request_body {
 		max_size 50MB
 	}

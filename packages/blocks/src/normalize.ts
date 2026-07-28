@@ -4,13 +4,13 @@ function isString(value: unknown): value is string {
   return typeof value === "string";
 }
 
-/** http(s) 또는 사이트 내부 경로만 허용합니다. javascript: 등 위험한 스킴을 막기 위함입니다. */
+/** http(s)またはサイト内部パスのみ許可します。javascript:のような危険なスキームを防ぐためです。 */
 function isSafeImageUrl(url: string): boolean {
   return /^https?:\/\//i.test(url) || url.startsWith("/");
 }
 
-/** 값이 Block 타입의 형태(shape)를 갖췄는지만 검사합니다. 빈 문자열 등 "내용 없음"은 허용하고,
- *  실질적인 내용이 있는지는 hasContent()에서 별도로 판단합니다. */
+/** 値がBlock型の形(shape)を満たしているかだけを検査します。空文字列などの「内容なし」は許容し、
+ *  実質的な内容があるかどうかはhasContent()で別途判断します。 */
 export function isBlock(value: unknown): value is Block {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
@@ -39,8 +39,8 @@ export function isBlockArray(value: unknown): value is Block[] {
   return Array.isArray(value) && value.every(isBlock);
 }
 
-/** 블록에 실질적인 내용이 있는지 확인합니다. 이미지의 경우 안전하지 않은 URL(예: javascript:)은
- *  내용이 없는 것으로 취급되어 저장 시 제거됩니다. */
+/** ブロックに実質的な内容があるかを確認します。画像の場合、安全でないURL(例: javascript:)は
+ *  内容がないものとして扱われ、保存時に除去されます。 */
 export function hasContent(block: Block): boolean {
   switch (block.type) {
     case "paragraph":
@@ -56,7 +56,7 @@ export function hasContent(block: Block): boolean {
   }
 }
 
-/** 저장/응답 전에 각 블록의 공백을 정리하고, 실질적인 내용이 없는 블록은 제거합니다. */
+/** 保存/レスポンス前に各ブロックの空白を整理し、実質的な内容がないブロックは除去します。 */
 export function normalizeBlocks(blocks: Block[]): Block[] {
   return blocks
     .map((block): Block => {

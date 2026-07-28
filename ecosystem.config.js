@@ -1,5 +1,5 @@
-// pm2 프로세스 매니저용 설정 (실제 배포 서버에서 사용). 로컬 개발에는 필요 없습니다 —
-// 로컬에서는 `npm run dev`(concurrently)로 3개 앱을 한 번에 실행합니다.
+// pm2プロセスマネージャー用の設定(実際のデプロイサーバーで使用)。ローカル開発には不要です —
+// ローカルでは`npm run dev`(concurrently)で3つのアプリを同時に実行します。
 module.exports = {
   apps: [
     {
@@ -11,8 +11,8 @@ module.exports = {
     {
       name: "cms-admin",
       cwd: "./apps/admin",
-      // npm workspaces가 next를 모노레포 루트로 호이스팅하므로 apps/admin/node_modules/.bin/next는
-      // 존재하지 않습니다. 루트에 설치된 실제 진입점을 직접 가리켜야 pm2가 기동합니다.
+      // npm workspacesがnextをモノレポルートにホイスティングするため、apps/admin/node_modules/.bin/nextは
+      // 存在しません。ルートにインストールされた実際のエントリーポイントを直接指定しないとpm2が起動しません。
       script: "../../node_modules/next/dist/bin/next",
       args: "start -p 3001",
       env: { NODE_ENV: "production" },

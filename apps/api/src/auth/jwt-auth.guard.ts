@@ -5,9 +5,9 @@ import { AuthService, SessionPayload } from "./auth.service";
 export type RequestWithSession = Request & { session?: SessionPayload };
 
 /**
- * 세션 쿠키(httpOnly JWT)를 검증하는 가드. Passport 없이 직접 구현한 이유는
- * 전략(strategy)이 하나뿐이라 Passport의 추상화 계층이 불필요한 복잡도만 늘리기
- * 때문입니다(단순성 우선 원칙, structure.md 참고).
+ * セッションクッキー(httpOnly JWT)を検証するガード。Passportを使わず直接実装した理由は、
+ * 戦略(strategy)が1つしかないためPassportの抽象化レイヤーが不要な複雑さを増やすだけ
+ * だからです(シンプルさ優先の原則、structure.md参照)。
  */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {

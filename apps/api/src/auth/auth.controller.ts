@@ -6,9 +6,9 @@ import { JwtAuthGuard, RequestWithSession } from "./jwt-auth.guard";
 
 const COOKIE_NAME = "session";
 const isProd = process.env.NODE_ENV === "production";
-// 기본은 lax(동일 사이트 배포 기준). cloudflared 같은 터널로 admin/api를 서로 다른
-// 도메인에 띄워 시연할 때만 COOKIE_SAME_SITE=none 으로 임시 전환합니다.
-// SameSite=None은 브라우저 스펙상 Secure가 필수라 이 경우엔 HTTP(NODE_ENV=development)여도 secure를 강제합니다.
+// デフォルトはlax(同一サイトへのデプロイ前提)。cloudflaredのようなトンネルでadmin/apiを
+// 別ドメインに立ててデモする場合だけ、COOKIE_SAME_SITE=noneに一時的に切り替えます。
+// SameSite=Noneはブラウザの仕様上Secureが必須なため、この場合はHTTP(NODE_ENV=development)でもsecureを強制します。
 const cookieSameSite = (process.env.COOKIE_SAME_SITE as "lax" | "strict" | "none" | undefined) ?? "lax";
 const cookieSecure = cookieSameSite === "none" ? true : isProd;
 

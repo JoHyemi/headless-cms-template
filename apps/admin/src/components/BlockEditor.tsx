@@ -7,8 +7,8 @@ type Props = {
   onChange: (blocks: Block[]) => void;
 };
 
-// 마케팅팀이 마크다운/HTML 문법 없이 다룰 수 있는 워드프레스 블록 에디터 스타일의
-// 최소 구현. 문단/제목/목록/인용구/이미지 블록을 추가·삭제·순서 변경할 수 있습니다.
+// マーケティングチームがMarkdown/HTMLの文法を知らなくても扱える、WordPressのブロックエディタ
+// スタイルの最小実装。段落/見出し/リスト/引用/画像ブロックの追加・削除・並べ替えができます。
 export function BlockEditor({ blocks, onChange }: Props) {
   function updateBlock(index: number, next: Block) {
     onChange(blocks.map((b, i) => (i === index ? next : b)));

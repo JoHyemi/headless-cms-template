@@ -27,10 +27,10 @@ function escapeHtml(input: string): string {
 }
 
 /**
- * 블록 배열을 HTML 문자열로 변환합니다. 헤드리스 API(contentHtml)에서 외부 소비자에게
- * 제공하기 위한 용도이며, admin/website 자신의 화면은 BlockRenderer로 직접 JSX를 그려 이
- * 함수를 거치지 않습니다. 모든 텍스트는 escapeHtml을 거치므로 블록 안에 <script> 같은
- * 문자열을 넣어도 태그로 해석되지 않고 문자 그대로 출력됩니다.
+ * ブロック配列をHTML文字列に変換します。ヘッドレスAPI(contentHtml)で外部の消費者に
+ * 提供するための用途で、admin/website自身の画面はBlockRendererで直接JSXを描画してこの
+ * 関数は経由しません。すべてのテキストはescapeHtmlを通るため、ブロックの中に<script>のような
+ * 文字列を入れてもタグとして解釈されず、文字そのまま出力されます。
  */
 export function blocksToHtml(blocks: Block[]): string {
   return blocks

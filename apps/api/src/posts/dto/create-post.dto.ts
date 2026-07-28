@@ -6,9 +6,9 @@ export class CreatePostDto {
   @MinLength(1)
   title!: string;
 
-  // Block[] — 클래스 검증기가 다루기 어려운 유니온 타입이라 서비스에서 isBlockArray로 직접 검증합니다.
-  // @IsArray()는 형태 검증용이 아니라, ValidationPipe의 whitelist가 데코레이터 없는 필드를
-  // 제거해버리는 것을 막기 위한 최소 표시입니다.
+  // Block[] — クラスバリデータでは扱いにくいユニオン型なので、サービス側でisBlockArrayを使って直接検証します。
+  // @IsArray()は形の検証のためではなく、ValidationPipeのwhitelistがデコレータのないフィールドを
+  // 削除してしまうのを防ぐための最小限の目印です。
   @IsArray()
   content: unknown;
 

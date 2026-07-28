@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# 대면 시연용: 로컬에서 프로덕션 빌드로 3개 앱을 띄우고, cloudflared 터널로
-# website/admin에 접속 가능한 https URL을 발급합니다.
+# 対面デモ用: ローカルでプロダクションビルドの3つのアプリを起動し、cloudflaredトンネルで
+# website/adminにアクセスできるhttps URLを発行します。
 #
-# 반드시 본인 노트북(맥) 터미널에서 직접 실행하세요 — 원격 샌드박스가 아니라
-# "지금 이 자리에서" 인터넷에 연결된 컴퓨터여야 터널이 의미가 있습니다.
+# 必ず自分のノートPC(Mac)のターミナルで直接実行してください — リモートサンドボックスではなく
+# 「今この場で」インターネットに繋がっているコンピューターでないとトンネルの意味がありません。
 #
 #   cd cms
 #   bash deploy/local-demo.sh
 #
-# 끝나면 deploy/local-demo-stop.sh 로 정리하세요.
+# 終わったらdeploy/local-demo-stop.shで片付けてください。
 # ---------------------------------------------------------------------------
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -26,77 +26,77 @@ die()  { printf '\033[1;31mERROR: %s\033[0m\n' "$1" >&2; exit 1; }
 track_pid() { echo "$1" >> "$PID_FILE"; }
 
 # ---------------------------------------------------------------------------
-# 0. 사전 점검
+# 0. 事前チェック
 # ---------------------------------------------------------------------------
-command -v docker  >/dev/null 2>&1 || die "docker가 없습니다. Docker Desktop을 먼저 켜세요."
-command -v npm     >/dev/null 2>&1 || die "npm이 없습니다."
+command -v docker  >/dev/null 2>&1 || die "dockerがありません。先にDocker Desktopを起動してください。"
+command -v npm     >/dev/null 2>&1 || die "npmがありません。"
 
 if ! command -v cloudflared >/dev/null 2>&1; then
   if command -v brew >/dev/null 2>&1; then
-    log "cloudflared 설치 (brew)"
+    log "cloudflaredをインストール (brew)"
     brew install cloudflared
   else
-    die "cloudflared가 없습니다. 'brew install cloudflared' 로 설치 후 다시 실행하세요."
+    die "cloudflaredがありません。'brew install cloudflared' でインストール後、再実行してください。"
   fi
 fi
 
-[ -f apps/api/.env ] || die "apps/api/.env 가 없습니다. .env.example을 복사해 먼저 채워두세요."
+[ -f apps/api/.env ] || die "apps/api/.env がありません。.env.exampleをコピーして先に埋めておいてください。"
 
 # ---------------------------------------------------------------------------
-# 1. 로컬 Postgres
+# 1. ローカルPostgres
 # ---------------------------------------------------------------------------
-log "로컬 Postgres 기동"
+log "ローカルPostgresを起動"
 docker compose up -d db
 
-log "Postgres healthy 대기"
+log "Postgresがhealthyになるのを待機"
 for i in $(seq 1 30); do
   if docker compose exec -T db pg_isready -U "${POSTGRES_USER:-cms}" >/dev/null 2>&1; then
     break
   fi
   sleep 1
-  [ "$i" -eq 30 ] && die "Postgres가 30초 안에 준비되지 않았습니다. 'docker compose logs db' 확인하세요."
+  [ "$i" -eq 30 ] && die "Postgresが30秒以内に準備できませんでした。'docker compose logs db' を確認してください。"
 done
 
 # ---------------------------------------------------------------------------
-# 2. 빌드 (공유 패키지 → api)
+# 2. ビルド (共有パッケージ → api)
 # ---------------------------------------------------------------------------
-log "@cms/blocks 빌드"
+log "@cms/blocksをビルド"
 npm run build -w @cms/blocks
 
-log "Prisma 클라이언트 생성 + 마이그레이션 적용"
+log "Prisma Client生成 + マイグレーション適用"
 npm run prisma:generate -w @cms/api
 (cd apps/api && npx prisma migrate deploy)
 
-log "api 빌드"
+log "apiをビルド"
 npm run build -w @cms/api
 
-log "관리자 계정 시드 (이미 있으면 건너뜀)"
-npm run db:seed -w @cms/api || warn "시드 건너뜀 (이미 실행되었을 수 있습니다)"
+log "管理者アカウントのシード(すでにあればスキップ)"
+npm run db:seed -w @cms/api || warn "シードをスキップ(すでに実行済みの可能性があります)"
 
 # ---------------------------------------------------------------------------
-# 3. api 기동 — 오늘 하루만 쿠키/CORS를 터널 환경에 맞게 인라인으로 완화합니다.
-#    .env 파일은 건드리지 않습니다(이 값들은 프로세스 종료와 함께 사라짐).
-#      - COOKIE_SAME_SITE=none : admin과 api가 서로 다른 터널 도메인이라
-#        sameSite=lax(기본값)면 로그인 후 세션 쿠키가 admin→api 요청에 안 실립니다.
-#      - CORS_ORIGINS=""       : 터널 URL은 매번 랜덤이라 미리 CORS 허용 목록에
-#        넣어둘 수 없습니다. 비워두면 main.ts가 요청 Origin을 그대로 반사 허용합니다.
+# 3. api起動 — 今日だけクッキー/CORSをトンネル環境に合わせてインラインで緩和します。
+#    .envファイルには手を加えません(これらの値はプロセス終了とともに消えます)。
+#      - COOKIE_SAME_SITE=none : adminとapiが別々のトンネルドメインになるため、
+#        sameSite=lax(デフォルト)だとログイン後のセッションクッキーがadmin→apiリクエストに乗りません。
+#      - CORS_ORIGINS=""       : トンネルURLは毎回ランダムなので、事前にCORS許可リストに
+#        入れておくことができません。空にしておくとmain.tsがリクエストのOriginをそのまま反射的に許可します。
 # ---------------------------------------------------------------------------
-log "api 기동 (포트 4000)"
+log "api起動 (ポート4000)"
 (cd apps/api && COOKIE_SAME_SITE=none CORS_ORIGINS="" PORT=4000 node dist/main.js) \
   > "$LOG_DIR/api.log" 2>&1 &
 API_PID=$!
 track_pid "$API_PID"
 
-log "api 응답 대기"
+log "apiの応答を待機"
 for i in $(seq 1 30); do
   code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:4000/ || echo 000)
   [ "$code" != "000" ] && break
   sleep 1
-  [ "$i" -eq 30 ] && die "api가 30초 안에 응답하지 않습니다. $LOG_DIR/api.log 확인하세요."
+  [ "$i" -eq 30 ] && die "apiが30秒以内に応答しません。$LOG_DIR/api.log を確認してください。"
 done
 
 # ---------------------------------------------------------------------------
-# 4. api 터널 — admin/website 빌드에 이 URL을 박아 넣어야 하므로 가장 먼저 엽니다.
+# 4. apiトンネル — admin/websiteのビルドにこのURLを埋め込む必要があるため最初に開きます。
 # ---------------------------------------------------------------------------
 wait_for_tunnel_url() {
   local logfile="$1" waited=0
@@ -109,19 +109,19 @@ wait_for_tunnel_url() {
   return 1
 }
 
-log "api 터널 오픈"
+log "apiトンネルを開く"
 cloudflared tunnel --url http://localhost:4000 > "$LOG_DIR/tunnel-api.log" 2>&1 &
 track_pid "$!"
 API_URL_PUBLIC=$(wait_for_tunnel_url "$LOG_DIR/tunnel-api.log") \
-  || die "api 터널 URL을 못 받았습니다. $LOG_DIR/tunnel-api.log 확인하세요."
-log "api 공개 URL: $API_URL_PUBLIC"
+  || die "apiトンネルのURLを取得できませんでした。$LOG_DIR/tunnel-api.log を確認してください。"
+log "api公開URL: $API_URL_PUBLIC"
 
 # ---------------------------------------------------------------------------
-# 5. admin/website에 api 터널 URL 주입 후 빌드
-#    .env.production.local은 next build(NODE_ENV=production) 시 .env.local보다
-#    우선 적용되어 브라우저 번들에 이 값이 박힙니다.
+# 5. admin/websiteにapiトンネルURLを注入してからビルド
+#    .env.production.localはnext build(NODE_ENV=production)時に.env.localより
+#    優先して適用され、ブラウザバンドルにこの値が埋め込まれます。
 # ---------------------------------------------------------------------------
-log "admin/website 환경변수 작성"
+log "admin/websiteの環境変数を作成"
 cat > apps/admin/.env.production.local <<EOF
 API_URL=http://localhost:4000
 NEXT_PUBLIC_API_URL=$API_URL_PUBLIC
@@ -130,20 +130,20 @@ cat > apps/website/.env.production.local <<EOF
 NEXT_PUBLIC_API_URL=$API_URL_PUBLIC
 EOF
 
-log "admin 빌드"
+log "adminをビルド"
 npm run build -w @cms/admin
 
-log "website 빌드"
+log "websiteをビルド"
 npm run build -w @cms/website
 
 # ---------------------------------------------------------------------------
-# 6. admin/website 기동
+# 6. admin/website起動
 # ---------------------------------------------------------------------------
-log "admin 기동 (포트 3001)"
+log "admin起動 (ポート3001)"
 npm run start -w @cms/admin > "$LOG_DIR/admin.log" 2>&1 &
 track_pid "$!"
 
-log "website 기동 (포트 3000)"
+log "website起動 (ポート3000)"
 npm run start -w @cms/website > "$LOG_DIR/website.log" 2>&1 &
 track_pid "$!"
 
@@ -152,41 +152,41 @@ for port in 3001 3000; do
     code=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$port/" || echo 000)
     [ "$code" != "000" ] && break
     sleep 1
-    [ "$i" -eq 30 ] && die "포트 $port 가 30초 안에 응답하지 않습니다. 로그를 확인하세요."
+    [ "$i" -eq 30 ] && die "ポート $port が30秒以内に応答しません。ログを確認してください。"
   done
 done
 
 # ---------------------------------------------------------------------------
-# 7. admin/website 터널
+# 7. admin/websiteトンネル
 # ---------------------------------------------------------------------------
-log "admin 터널 오픈"
+log "adminトンネルを開く"
 cloudflared tunnel --url http://localhost:3001 > "$LOG_DIR/tunnel-admin.log" 2>&1 &
 track_pid "$!"
 ADMIN_URL_PUBLIC=$(wait_for_tunnel_url "$LOG_DIR/tunnel-admin.log") \
-  || die "admin 터널 URL을 못 받았습니다. $LOG_DIR/tunnel-admin.log 확인하세요."
+  || die "adminトンネルのURLを取得できませんでした。$LOG_DIR/tunnel-admin.log を確認してください。"
 
-log "website 터널 오픈"
+log "websiteトンネルを開く"
 cloudflared tunnel --url http://localhost:3000 > "$LOG_DIR/tunnel-website.log" 2>&1 &
 track_pid "$!"
 WEBSITE_URL_PUBLIC=$(wait_for_tunnel_url "$LOG_DIR/tunnel-website.log") \
-  || die "website 터널 URL을 못 받았습니다. $LOG_DIR/tunnel-website.log 확인하세요."
+  || die "websiteトンネルのURLを取得できませんでした。$LOG_DIR/tunnel-website.log を確認してください。"
 
 ADMIN_EMAIL=$(grep -E '^ADMIN_EMAIL=' apps/api/.env | cut -d= -f2- | tr -d '"')
 
 cat <<EOF
 
 ============================================================
- 시연 준비 완료 — 아래 두 URL만 쓰면 됩니다
+ デモ準備完了 — 下の2つのURLだけ使えばOKです
 ============================================================
- 공개 사이트: $WEBSITE_URL_PUBLIC
- 관리자 화면: $ADMIN_URL_PUBLIC   (로그인: $ADMIN_EMAIL / apps/api/.env의 ADMIN_PASSWORD)
+ 公開サイト: $WEBSITE_URL_PUBLIC
+ 管理画面: $ADMIN_URL_PUBLIC   (ログイン: $ADMIN_EMAIL / apps/api/.envのADMIN_PASSWORD)
 
- 주의:
- - 이 URL들은 이 스크립트를 켜둔 동안만 살아 있습니다. 노트북을 재우거나
-   터미널을 닫으면 끊깁니다.
- - 링크는 참가자에게 QR코드나 채팅으로 공유하세요. 매번 랜덤이라 재시작하면
-   URL이 바뀝니다.
- - 끝나면:  bash deploy/local-demo-stop.sh
+ 注意:
+ - これらのURLはこのスクリプトを起動している間だけ有効です。ノートPCを
+   スリープさせたり、ターミナルを閉じたりすると切れます。
+ - リンクは参加者にQRコードやチャットで共有してください。毎回ランダムなので
+   再起動するとURLが変わります。
+ - 終わったら:  bash deploy/local-demo-stop.sh
 ============================================================
 
 EOF

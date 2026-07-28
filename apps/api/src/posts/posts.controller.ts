@@ -8,26 +8,26 @@ import { UpdatePostDto } from "./dto/update-post.dto";
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
-  /** GET /posts?category=slug — 공개(비로그인) 접근. PUBLISHED 글만 반환합니다. */
+  /** GET /posts?category=slug — 公開(非ログイン)アクセス。PUBLISHEDの記事のみ返します。 */
   @Get()
   findPublished(@Query("category") category?: string) {
     return this.postsService.findPublished(category);
   }
 
-  /** GET /posts/all — 관리자 목록용. 로그인 필요, 모든 상태의 글을 반환합니다. */
+  /** GET /posts/all — 管理者一覧用。ログインが必要で、すべての状態の記事を返します。 */
   @Get("all")
   @UseGuards(JwtAuthGuard)
   findAllForAdmin() {
     return this.postsService.findAllForAdmin();
   }
 
-  /** GET /posts/slug/:slug — 공개 사이트의 글 상세용. PUBLISHED가 아니면 404. */
+  /** GET /posts/slug/:slug — 公開サイトの記事詳細用。PUBLISHEDでなければ404。 */
   @Get("slug/:slug")
   findBySlug(@Param("slug") slug: string) {
     return this.postsService.findBySlugPublished(decodeURIComponent(slug));
   }
 
-  /** GET /posts/:id — 관리자 수정 화면용. 로그인 필요, 상태 무관하게 조회 가능. */
+  /** GET /posts/:id — 管理者の編集画面用。ログインが必要で、状態を問わず取得可能。 */
   @Get(":id")
   @UseGuards(JwtAuthGuard)
   findOne(@Param("id") id: string) {
