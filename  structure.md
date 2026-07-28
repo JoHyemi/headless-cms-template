@@ -1,7 +1,7 @@
-CMS 설계 방향
-기본 방향
-본 CMS는 WordPress와 동일하게 "1 CMS = 1 Site" 구조를 기본으로 한다.
-각 사이트는 독립적인 CMS 인스턴스를 가지며, 프로젝트마다 별도의 관리자, 데이터, 설정을 관리한다.
+CMSの設計方針
+基本方針
+本CMSはWordPressと同じく「1 CMS = 1 Site」構造を基本とする。
+各サイトは独立したCMSインスタンスを持ち、プロジェクトごとに別々の管理者・データ・設定を管理する。
 Company A CMS
  ├── Admin
  ├── API
@@ -13,39 +13,39 @@ Company B CMS
  ├── API
  ├── Database
  └── Frontend
-이 구조를 채택하는 이유는 다음과 같다.
-설계가 단순하다.
-권한 관리가 단순하다.
-사이트별 설정 분리가 쉽다.
-WordPress와 유사한 운영 방식이다.
-유지보수가 쉽다.
+この構造を採用する理由は以下の通り。
+設計がシンプルである。
+権限管理がシンプルである。
+サイトごとの設定分離がしやすい。
+WordPressに似た運用方式である。
+保守がしやすい。
 
-기술 스택
+技術スタック
 Admin
 Next.js
 React
 TypeScript
-관리자는 Next.js 기반으로 개발한다.
-관리 화면은 API를 직접 호출하여 데이터를 관리하며, 콘텐츠 수정은 관리자 화면에서 수행한다.
+管理画面はNext.jsベースで開発する。
+管理画面はAPIを直接呼び出してデータを管理し、コンテンツの修正は管理画面から行う。
 Backend
 NestJS
 Prisma
 PostgreSQL
-NestJS는 REST API를 제공하며, 비즈니스 로직과 데이터 관리를 담당한다.
-Prisma는 ORM으로 사용한다.
+NestJSはREST APIを提供し、ビジネスロジックとデータ管理を担当する。
+PrismaはORMとして使用する。
 Frontend
-공개 사이트는 CMS와 별도의 프로젝트로 개발한다.
-프론트엔드는 다음과 같은 기술을 자유롭게 사용할 수 있다.
+公開サイトはCMSとは別のプロジェクトとして開発する。
+フロントエンドは以下のような技術を自由に使用できる。
 Next.js
 React
 Vue
 Astro
 HTML
-기타 Framework
-Frontend는 CMS API만 호출하여 화면을 구성한다.
+その他のFramework
+FrontendはCMS APIだけを呼び出して画面を構成する。
 
-Admin과 Frontend 분리
-관리 화면(Admin)과 공개 사이트(Frontend)는 서로 다른 프로젝트이다.
+AdminとFrontendの分離
+管理画面(Admin)と公開サイト(Frontend)は別々のプロジェクトである。
 Admin (Next.js)
         │
         ▼
@@ -57,13 +57,13 @@ Admin (Next.js)
         │
         ▼
 Frontend
-관리자는 Admin만 사용하며,
-사용자는 Frontend만 접근한다.
+管理者はAdminだけを使用し、
+利用者はFrontendだけにアクセスする。
 
-API 설계 원칙
-API는 Frontend와의 계약(Contract)이다.
-Frontend는 데이터베이스 구조를 알 필요가 없으며, API 명세만 신뢰하고 개발한다.
-예시
+API設計の原則
+APIはFrontendとの契約(Contract)である。
+Frontendはデータベースの構造を知る必要がなく、API仕様だけを信頼して開発する。
+例
 GET /posts/1
 
 Response
@@ -75,12 +75,12 @@ Response
   "thumbnail": "...",
   "publishedAt": "..."
 }
-DB 구조가 변경되더라도 API 응답 형식은 가능한 한 유지한다.
-API 변경은 호환성을 고려하여 신중하게 수행한다.
+DB構造が変更されても、APIレスポンスの形式はできる限り維持する。
+API変更は互換性を考慮して慎重に行う。
 
-데이터베이스 설계 원칙
-DB 구조는 API와 독립적으로 관리한다.
-Frontend는 DB를 직접 접근하지 않는다.
+データベース設計の原則
+DB構造はAPIとは独立して管理する。
+FrontendはDBに直接アクセスしない。
 Frontend
     │
 API(DTO)
@@ -90,12 +90,12 @@ Service
 Prisma
     │
 PostgreSQL
-비즈니스 로직은 Service 계층에서 처리한다.
+ビジネスロジックはServiceレイヤーで処理する。
 
-향후 확장성
-현재 버전(V1)은 단일 사이트를 지원한다.
-그러나 데이터 모델은 향후 Multi-site를 지원할 수 있도록 설계한다.
-예시
+将来の拡張性
+現バージョン(V1)は単一サイトをサポートする。
+ただし、データモデルは将来Multi-siteをサポートできるように設計する。
+例
 Site
  ├── id
  ├── name
@@ -106,41 +106,41 @@ Post
  ├── siteId
  ├── title
  └── content
-V1에서는 Site를 하나만 생성하도록 제한한다.
-향후 Multi-site가 필요해질 경우,
-Site 관리 기능
-프로젝트별 권한 관리
-프로젝트 선택 UI
-등을 추가하여 확장할 수 있도록 한다.
+V1ではSiteを1つだけ作成するよう制限する。
+将来Multi-siteが必要になった場合、
+Site管理機能
+プロジェクトごとの権限管理
+プロジェクト選択UI
+などを追加して拡張できるようにする。
 
-개발 원칙
-콘텐츠와 화면을 분리한다.
-API 중심으로 설계한다.
-Frontend는 API만 사용한다.
-DB 구조는 Frontend에 노출하지 않는다.
-API의 호환성을 최대한 유지한다.
-재사용 가능한 컴포넌트 중심으로 개발한다.
-WordPress의 콘텐츠 관리 경험(Post, Page, Custom Post Type, Taxonomy 등)을 참고하되, WordPress의 구조를 그대로 모방하지 않는다.
-V1에서는 기능보다 단순성과 유지보수성을 우선한다.
+開発原則
+コンテンツと画面を分離する。
+API中心に設計する。
+FrontendはAPIだけを使用する。
+DB構造をFrontendに露出しない。
+APIの互換性を最大限維持する。
+再利用可能なコンポーネント中心に開発する。
+WordPressのコンテンツ管理の経験(Post, Page, Custom Post Type, Taxonomyなど)を参考にするが、WordPressの構造をそのまま模倣しない。
+V1では機能よりシンプルさと保守性を優先する。
 
-CMS 운영 방식 (V1)
-목표
+CMS運用方式(V1)
+目標
 1 CMS = 1 Website
-WordPress처럼 사이트마다 독립적인 CMS를 가진다.
-GitHub Actions를 이용해 자동 배포한다.
+WordPressのようにサイトごとに独立したCMSを持つ。
+GitHub Actionsを使って自動デプロイする。
 
-프로젝트 생성
-공통 템플릿 저장소를 하나 만든다.
+プロジェクト作成
+共通テンプレートリポジトリを1つ作る。
 headless-cms-template
-새 사이트를 만들 때는 GitHub의 Use this template 기능으로 새로운 저장소를 생성한다.
-예시
+新しいサイトを作る時は、GitHubのUse this template機能で新しいリポジトリを作成する。
+例
 headless-cms-template
         │
         ├── Use this template
         ▼
 company-a
 
-프로젝트 구조
+プロジェクト構造
 company-a
 
 apps/
@@ -150,48 +150,48 @@ apps/
 
 packages/
 .github/
-admin : 관리자(CMS)
+admin : 管理者(CMS)
 api : REST API
-website : 공개 사이트
+website : 公開サイト
 
-배포
-main 브랜치에 Push
+デプロイ
+mainブランチにPush
 ↓
-GitHub Actions 실행
+GitHub Actions実行
 ↓
-EC2(또는 서버)에 자동 배포
+EC2(またはサーバー)に自動デプロイ
 ↓
-사이트와 CMS가 함께 실행
+サイトとCMSが一緒に稼働
 
-운영
-관리자는
+運用
+管理者は
 cms.company-a.com
-에서
-로그인
-글 작성
-페이지 작성
-이미지 업로드
-를 수행한다.
-공개 사이트는
+で
+ログイン
+記事作成
+ページ作成
+画像アップロード
+を行う。
+公開サイトは
 company-a.com
-에서 API를 호출하여 콘텐츠를 표시한다.
+でAPIを呼び出してコンテンツを表示する。
 
-장점
-사이트마다 완전히 독립적
-DB도 프로젝트별로 분리
-장애가 다른 사이트에 영향을 주지 않음
-WordPress와 비슷한 운영 방식
-GitHub Actions로 자동 배포 가능
+メリット
+サイトごとに完全に独立
+DBもプロジェクトごとに分離
+障害が他のサイトに影響を与えない
+WordPressに似た運用方式
+GitHub Actionsで自動デプロイ可能
 
-향후(V2)
-공통 기능이 많아지면
+将来(V2)
+共通機能が多くなったら
 headless-cms-core
-를 별도 패키지로 분리하여 여러 프로젝트에서 공유하도록 개선한다.
-V1에서는 Template Repository 기반으로 시작하는 것이 가장 단순하고 유지보수하기 쉽다.
+を別パッケージとして切り出し、複数のプロジェクトで共有できるように改善する。
+V1ではTemplate Repositoryベースで始めるのが最もシンプルで保守しやすい。
 
 
 
-목표:
+目標:
 git clone https://github.com/your-org/headless-cms-template.git
 
 cp .env.example .env
@@ -200,11 +200,11 @@ docker compose up -d
 
 npm run prisma:migrate
 
-# 접속
+# アクセス
 http://localhost:3000  (Website)
 http://localhost:3001  (Admin)
 
-아키텍처
+アーキテクチャ
                 GitHub
                    │
           GitHub Actions
@@ -220,20 +220,20 @@ http://localhost:3001  (Admin)
                    │
              PostgreSQL
 
-1. 목적
+1. 目的
 
-WordPress를 대체할 자체 Headless CMS 개발
+WordPressを代替する自前のHeadless CMS開発
 
-2. 기술스택
+2. 技術スタック
 
 Next.js
 NestJS
 Prisma
 PostgreSQL
 
-3. MVP 범위
+3. MVPの範囲
 
-- 로그인
+- ログイン
 - Post
 - Page
 - Media
@@ -241,15 +241,14 @@ PostgreSQL
 - API
 - Website
 
-4. 제외
+4. 除外
 
 - Plugin
 - Theme
 - Multi Site
 
-5. 향후 예정
+5. 今後の予定
 
 - Custom Post Type
 - Workflow
 - Version History
-
