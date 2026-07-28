@@ -10,6 +10,18 @@ export function isSafeUrl(url: string): boolean {
   return /^https?:\/\//i.test(url) || url.startsWith("/");
 }
 
+/**
+ * アップロードされたメディアのurlは`/uploads/...`のような相対パスでDBに保存される
+ * (デプロイ環境ごとにAPIの公開アドレスが変わっても内容が壊れないようにするため)。
+ * そのままadmin/websiteで<img>のsrcに使うと、それぞれ自分自身のオリジンに対して
+ * 相対解決されてしまい画像が壊れる — 表示する側がbaseUrl(自分のAPI_URL)を渡して、
+ * ここで初めて絶対URLに変換する。すでに絶対URL(http/https)ならそのまま返す。
+ */
+export function resolveMediaUrl(url: string, baseUrl?: string): string {
+  if (!baseUrl || !url.startsWith("/")) return url;
+  return `${baseUrl}${url}`;
+}
+
 /** カスタムブロックのfields定義(FieldDef)1件の形を検査します。 */
 export function isFieldDef(value: unknown): value is FieldDef {
   if (typeof value !== "object" || value === null) return false;

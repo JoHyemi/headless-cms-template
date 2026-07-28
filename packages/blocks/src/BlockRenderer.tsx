@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { Block, FieldValue } from "./types";
+import { resolveMediaUrl } from "./normalize";
 
 /** カスタムブロックをJSXで描画するコンポーネントをブロックタイプのslugごとに登録するための型。 */
 export type CustomBlockComponents = Record<
@@ -29,12 +30,17 @@ function CustomBlockFallback({ blockType, fields }: { blockType: string; fields:
 //
 // customComponentsはブロックタイプのslugごとにJSXコンポーネントを登録するための拡張ポイント。
 // 未登録のslugはCustomBlockFallback(ラベル:値のリスト)で表示される。
+//
+// mediaBaseUrlは画像ブロックのurlが/uploads/...のような相対パスの場合に絶対URLへ変換するための
+// ベースURL(呼び出し側の環境のAPI_URL)。渡さなければurlをそのまま使う。
 export function BlockRenderer({
   blocks,
   customComponents = {},
+  mediaBaseUrl,
 }: {
   blocks: Block[];
   customComponents?: CustomBlockComponents;
+  mediaBaseUrl?: string;
 }) {
   return (
     <div className="block-content">
@@ -73,7 +79,7 @@ export function BlockRenderer({
             return block.url ? (
               <figure key={index}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={block.url} alt={block.alt} />
+                <img src={resolveMediaUrl(block.url, mediaBaseUrl)} alt={block.alt} />
                 {block.caption && <figcaption className="muted">{block.caption}</figcaption>}
               </figure>
             ) : null;

@@ -8,6 +8,9 @@ import { CreatePostDto } from "./dto/create-post.dto";
 import { UpdatePostDto } from "./dto/update-post.dto";
 
 const includeCategories = { categories: true } as const;
+// contentHtml内の画像相対パス(/uploads/...)を絶対URLにするためのベースURL。
+// 実行時のDB接続先ではなく、外部から見えるAPIの公開アドレスを指す。
+const MEDIA_BASE_URL = process.env.PUBLIC_API_URL;
 
 @Injectable()
 export class PostsService {
@@ -25,7 +28,7 @@ export class PostsService {
       orderBy: { createdAt: "desc" },
       include: includeCategories,
     });
-    return { posts: posts.map(toContentDTO) };
+    return { posts: posts.map((post) => toContentDTO(post, MEDIA_BASE_URL)) };
   }
 
   async findAllForAdmin() {
@@ -33,7 +36,7 @@ export class PostsService {
       orderBy: { createdAt: "desc" },
       include: includeCategories,
     });
-    return { posts: posts.map(toContentDTO) };
+    return { posts: posts.map((post) => toContentDTO(post, MEDIA_BASE_URL)) };
   }
 
   async findBySlugPublished(slug: string) {
@@ -41,13 +44,13 @@ export class PostsService {
     if (!post || post.status !== ContentStatus.PUBLISHED) {
       throw new NotFoundException("記事が見つかりません。");
     }
-    return toContentDTO(post);
+    return toContentDTO(post, MEDIA_BASE_URL);
   }
 
   async findOne(id: string) {
     const post = await this.prisma.post.findUnique({ where: { id }, include: includeCategories });
     if (!post) throw new NotFoundException("記事が見つかりません。");
-    return toContentDTO(post);
+    return toContentDTO(post, MEDIA_BASE_URL);
   }
 
   async create(dto: CreatePostDto) {
@@ -80,7 +83,7 @@ export class PostsService {
         },
         include: includeCategories,
       });
-      return toContentDTO(post);
+      return toContentDTO(post, MEDIA_BASE_URL);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2002") throw new ConflictException("既に存在するslugです。");
@@ -122,7 +125,7 @@ export class PostsService {
 
     try {
       const post = await this.prisma.post.update({ where: { id }, data, include: includeCategories });
-      return toContentDTO(post);
+      return toContentDTO(post, MEDIA_BASE_URL);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2025") {

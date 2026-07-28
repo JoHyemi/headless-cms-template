@@ -1,4 +1,5 @@
 import type { Block, FieldValue } from "./types";
+import { resolveMediaUrl } from "./normalize";
 
 export function blocksToPlainText(blocks: Block[]): string {
   return blocks
@@ -49,8 +50,16 @@ function renderCustomBlockFallback(block: { blockType: string; fields: Record<st
  *
  * customRenderersはブロックタイプのslugごとにHTML文字列を組み立てる関数を登録するための
  * 拡張ポイント。未登録のslugはrenderCustomBlockFallback(ラベル:値のリスト)で表示される。
+ *
+ * mediaBaseUrlは画像ブロックのurlが/uploads/...のような相対パスの場合に絶対URLへ変換する
+ * ためのベースURL。外部に配布するcontentHtmlは相対パスのままだと壊れるため、APIサーバー
+ * 自身の公開URL(例: https://api.example.com)を渡す。
  */
-export function blocksToHtml(blocks: Block[], customRenderers: CustomBlockHtmlRenderers = {}): string {
+export function blocksToHtml(
+  blocks: Block[],
+  customRenderers: CustomBlockHtmlRenderers = {},
+  mediaBaseUrl?: string
+): string {
   return blocks
     .map((block) => {
       switch (block.type) {
@@ -69,7 +78,8 @@ export function blocksToHtml(blocks: Block[], customRenderers: CustomBlockHtmlRe
         }
         case "image": {
           const caption = block.caption ? `<figcaption>${escapeHtml(block.caption)}</figcaption>` : "";
-          return `<figure><img src="${escapeHtml(block.url)}" alt="${escapeHtml(block.alt)}" />${caption}</figure>`;
+          const src = resolveMediaUrl(block.url, mediaBaseUrl);
+          return `<figure><img src="${escapeHtml(src)}" alt="${escapeHtml(block.alt)}" />${caption}</figure>`;
         }
         case "custom": {
           const renderer = customRenderers[block.blockType];

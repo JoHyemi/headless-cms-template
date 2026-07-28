@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/SiteHeader";
 import { BlockRenderer, PRESET_CUSTOM_COMPONENTS } from "@cms/blocks";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, API_URL } from "@/lib/api";
 import type { PostDTO } from "@/types/api";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -41,7 +41,11 @@ export default async function PostPage({ params }: Props) {
           </div>
         )}
         <article style={{ marginTop: "1.5rem" }}>
-          <BlockRenderer blocks={post.content} customComponents={PRESET_CUSTOM_COMPONENTS} />
+          <BlockRenderer
+            blocks={post.content}
+            customComponents={PRESET_CUSTOM_COMPONENTS}
+            mediaBaseUrl={API_URL}
+          />
         </article>
       </main>
     </>

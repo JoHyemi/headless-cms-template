@@ -11,7 +11,7 @@ import {
   type Block,
 } from "@cms/blocks";
 import { BlockEditor } from "@/components/BlockEditor";
-import { apiFetch } from "@/lib/api-client";
+import { API_URL, apiFetch } from "@/lib/api-client";
 import type { BlockTypeDTO, CategoryDTO, PostDTO } from "@/types/api";
 
 const WEBSITE_URL = process.env.NEXT_PUBLIC_WEBSITE_URL ?? "http://localhost:3000";
@@ -160,7 +160,11 @@ export function PostForm({ mode, post, allCategories, blockTypes = [] }: Props) 
           )}
           <div style={{ marginTop: "1.5rem" }}>
             {blocks.some(hasContent) ? (
-              <BlockRenderer blocks={blocks} customComponents={PRESET_CUSTOM_COMPONENTS} />
+              <BlockRenderer
+                blocks={blocks}
+                customComponents={PRESET_CUSTOM_COMPONENTS}
+                mediaBaseUrl={API_URL}
+              />
             ) : (
               <p className="muted">(本文なし)</p>
             )}

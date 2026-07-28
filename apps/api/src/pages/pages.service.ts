@@ -7,6 +7,9 @@ import { slugify } from "../common/slugify";
 import { CreatePageDto } from "./dto/create-page.dto";
 import { UpdatePageDto } from "./dto/update-page.dto";
 
+// contentHtml内の画像相対パス(/uploads/...)を絶対URLにするためのベースURL。
+const MEDIA_BASE_URL = process.env.PUBLIC_API_URL;
+
 @Injectable()
 export class PagesService {
   constructor(
@@ -16,7 +19,7 @@ export class PagesService {
 
   async findAllForAdmin() {
     const pages = await this.prisma.page.findMany({ orderBy: { createdAt: "desc" } });
-    return { pages: pages.map(toContentDTO) };
+    return { pages: pages.map((page) => toContentDTO(page, MEDIA_BASE_URL)) };
   }
 
   async findBySlugPublished(slug: string) {
@@ -24,13 +27,13 @@ export class PagesService {
     if (!page || page.status !== ContentStatus.PUBLISHED) {
       throw new NotFoundException("ページが見つかりません。");
     }
-    return toContentDTO(page);
+    return toContentDTO(page, MEDIA_BASE_URL);
   }
 
   async findOne(id: string) {
     const page = await this.prisma.page.findUnique({ where: { id } });
     if (!page) throw new NotFoundException("ページが見つかりません。");
-    return toContentDTO(page);
+    return toContentDTO(page, MEDIA_BASE_URL);
   }
 
   async create(dto: CreatePageDto) {
@@ -57,7 +60,7 @@ export class PagesService {
           siteId: await this.site.getSiteId(),
         },
       });
-      return toContentDTO(page);
+      return toContentDTO(page, MEDIA_BASE_URL);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         throw new ConflictException("既に存在するslugです。");
@@ -91,7 +94,7 @@ export class PagesService {
 
     try {
       const page = await this.prisma.page.update({ where: { id }, data });
-      return toContentDTO(page);
+      return toContentDTO(page, MEDIA_BASE_URL);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === "P2025") throw new NotFoundException("ページが見つかりません。");
