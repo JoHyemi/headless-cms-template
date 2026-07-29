@@ -204,128 +204,142 @@ export function PostForm({ mode, post, allCategories, blockTypes = [] }: Props) 
         <form onSubmit={(e) => handleSubmit(e)}>
           {error && <p className="error-text">{error}</p>}
 
-          <div className="field">
-            <label htmlFor="title">タイトル</label>
-            <input
-              id="title"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="記事のタイトルを入力してください"
-              required
-            />
-          </div>
-
-          <div className="field">
-            <label>本文</label>
-            <BlockEditor blocks={blocks} onChange={setBlocks} blockTypes={blockTypes} />
-          </div>
-
-          <div className="field">
-            <label htmlFor="author">投稿者</label>
-            <input
-              id="author"
-              type="text"
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-              placeholder="Admin"
-            />
-          </div>
-
-          <div className="field">
-            <label>カテゴリー</label>
-            {categories.length === 0 ? (
-              <span className="hint">まだカテゴリーがありません。下から新しく追加してみてください。</span>
-            ) : (
-              <div className="actions-row">
-                {categories.map((category) => (
-                  <label
-                    key={category.id}
-                    className="btn"
-                    style={{
-                      cursor: "pointer",
-                      background: categoryIds.includes(category.id) ? "var(--accent)" : undefined,
-                      borderColor: categoryIds.includes(category.id) ? "var(--accent)" : undefined,
-                      color: categoryIds.includes(category.id) ? "var(--accent-foreground)" : undefined,
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={categoryIds.includes(category.id)}
-                      onChange={() => toggleCategory(category.id)}
-                      style={{ display: "none" }}
-                    />
-                    {category.name}
-                  </label>
-                ))}
+          <div className="post-editor-grid">
+            <div className="post-editor-main">
+              <div className="field">
+                <label htmlFor="title">タイトル</label>
+                <input
+                  id="title"
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="記事のタイトルを入力してください"
+                  required
+                />
               </div>
-            )}
 
-            {categoryError && <p className="error-text">{categoryError}</p>}
-            <div className="actions-row" style={{ marginTop: "0.5rem" }}>
-              <input
-                type="text"
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder="新しいカテゴリー名"
-                style={{ flex: 1, minWidth: "160px" }}
-              />
-              <button
-                type="button"
-                className="btn"
-                disabled={creatingCategory || !newCategoryName.trim()}
-                onClick={handleCreateCategory}
-              >
-                {creatingCategory ? "追加中…" : "カテゴリー追加"}
-              </button>
+              <div className="field">
+                <label>本文</label>
+                <BlockEditor blocks={blocks} onChange={setBlocks} blockTypes={blockTypes} />
+              </div>
             </div>
-          </div>
 
-          <div className="field">
-            <label htmlFor="status">ステータス</label>
-            <select
-              id="status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value as "DRAFT" | "PUBLISHED")}
-            >
-              <option value="DRAFT">下書き (DRAFT)</option>
-              <option value="PUBLISHED">公開 (PUBLISHED)</option>
-            </select>
-          </div>
+            {/* WordPressのように、投稿者・カテゴリー・ステータス・slugはブロックの量に左右されない
+                固定サイドバーへまとめ、本文ブロックが増えても埋もれたり見失ったりしないようにする。 */}
+            <aside className="post-editor-sidebar">
+              <div className="card">
+                <h2 className="sidebar-card-title">公開設定</h2>
 
-          {mode === "edit" ? (
-            <div className="field">
-              <label htmlFor="slug">slug</label>
-              <input
-                id="slug"
-                type="text"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                placeholder="post-slug"
-                required
-              />
-              <span className="hint">
-                空白・特殊文字は保存時に自動でハイフンに整理されます。他の記事と重複すると保存に失敗します。
-              </span>
-            </div>
-          ) : (
-            <span className="hint">slugはタイトルをもとに自動生成されます。</span>
-          )}
+                <div className="field">
+                  <label htmlFor="status">ステータス</label>
+                  <select
+                    id="status"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as "DRAFT" | "PUBLISHED")}
+                  >
+                    <option value="DRAFT">下書き (DRAFT)</option>
+                    <option value="PUBLISHED">公開 (PUBLISHED)</option>
+                  </select>
+                </div>
 
-          <div className="actions-row">
-            <button type="submit" className="btn btn-primary" disabled={submitting}>
-              {submitting ? "保存中…" : mode === "create" ? "保存" : "更新を保存"}
-            </button>
-            {status !== "PUBLISHED" && (
-              <button
-                type="button"
-                className="btn"
-                disabled={submitting}
-                onClick={(e) => handleSubmit(e, true)}
-              >
-                保存してすぐ公開
-              </button>
-            )}
+                {mode === "edit" ? (
+                  <div className="field">
+                    <label htmlFor="slug">slug</label>
+                    <input
+                      id="slug"
+                      type="text"
+                      value={slug}
+                      onChange={(e) => setSlug(e.target.value)}
+                      placeholder="post-slug"
+                      required
+                    />
+                    <span className="hint">
+                      空白・特殊文字は保存時に自動でハイフンに整理されます。他の記事と重複すると保存に失敗します。
+                    </span>
+                  </div>
+                ) : (
+                  <span className="hint">slugはタイトルをもとに自動生成されます。</span>
+                )}
+
+                <div className="actions-row" style={{ marginTop: "0.9rem" }}>
+                  <button type="submit" className="btn btn-primary" disabled={submitting}>
+                    {submitting ? "保存中…" : mode === "create" ? "保存" : "更新を保存"}
+                  </button>
+                  {status !== "PUBLISHED" && (
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={submitting}
+                      onClick={(e) => handleSubmit(e, true)}
+                    >
+                      保存してすぐ公開
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="card">
+                <h2 className="sidebar-card-title">投稿者</h2>
+                <div className="field" style={{ marginBottom: 0 }}>
+                  <input
+                    id="author"
+                    type="text"
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                    placeholder="Admin"
+                  />
+                </div>
+              </div>
+
+              <div className="card">
+                <h2 className="sidebar-card-title">カテゴリー</h2>
+                {categories.length === 0 ? (
+                  <span className="hint">まだカテゴリーがありません。下から新しく追加してみてください。</span>
+                ) : (
+                  <div className="actions-row">
+                    {categories.map((category) => (
+                      <label
+                        key={category.id}
+                        className="btn"
+                        style={{
+                          cursor: "pointer",
+                          background: categoryIds.includes(category.id) ? "var(--accent)" : undefined,
+                          borderColor: categoryIds.includes(category.id) ? "var(--accent)" : undefined,
+                          color: categoryIds.includes(category.id) ? "var(--accent-foreground)" : undefined,
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={categoryIds.includes(category.id)}
+                          onChange={() => toggleCategory(category.id)}
+                          style={{ display: "none" }}
+                        />
+                        {category.name}
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {categoryError && <p className="error-text">{categoryError}</p>}
+                <div className="actions-row" style={{ marginTop: "0.5rem" }}>
+                  <input
+                    type="text"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="新しいカテゴリー名"
+                    style={{ flex: 1, minWidth: "120px" }}
+                  />
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={creatingCategory || !newCategoryName.trim()}
+                    onClick={handleCreateCategory}
+                  >
+                    {creatingCategory ? "追加中…" : "カテゴリー追加"}
+                  </button>
+                </div>
+              </div>
+            </aside>
           </div>
         </form>
       )}

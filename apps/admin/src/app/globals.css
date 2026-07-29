@@ -284,6 +284,47 @@ a.badge-category:hover {
   letter-spacing: -0.015em;
 }
 
+/* ---- 投稿編集画面: WordPress風にメイン(本文)とサイドバー(公開設定など)を分離 ---- */
+
+.post-editor-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  align-items: start;
+  gap: 1.5rem;
+}
+
+.post-editor-main {
+  min-width: 0;
+}
+
+.post-editor-sidebar {
+  position: sticky;
+  top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.post-editor-sidebar .card {
+  margin-bottom: 0;
+}
+
+.sidebar-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 0.9rem;
+}
+
+@media (max-width: 860px) {
+  .post-editor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .post-editor-sidebar {
+    position: static;
+  }
+}
+
 .block-content > * + * {
   margin-top: 1rem;
 }
