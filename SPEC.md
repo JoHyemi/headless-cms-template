@@ -58,7 +58,6 @@ Headless CMS(Content Management System)です。
 主な機能:
 
 - 記事作成・編集
-- 固定ページ管理
 - カテゴリー管理
 - 画像管理
 - コンテンツ公開管理
@@ -112,14 +111,13 @@ CMS全体のデータ管理を担当するシステムです。
 |エンティティ|説明|
 |-|-|
 |Post|記事。タイトル・slug・本文(Block配列)・カテゴリー・公開状態を持つ|
-|Page|固定ページ。Postと同じBlock形式で本文を保持|
 |Category|カテゴリー。1つの記事が複数カテゴリーに属することが可能|
 |Media|アップロードされた画像ファイル。URL・Alt・キャプションを保持|
 |BlockType|カスタムブロックの設計図。名前・スラッグ・フィールドスキーマ(Json)を保持|
 
 ## 4.2 公開状態
 
-記事・固定ページは DRAFT / PUBLISHED の2状態を持つ。
+記事は DRAFT / PUBLISHED の2状態を持つ。
 DRAFT は管理画面にのみ表示され、API・公開サイトには表れない。
 
 ---
@@ -208,7 +206,6 @@ WordPressのACF(Advanced Custom Fields)と同様、コード変更なしに管�
 |PATCH /posts/:id|必要|記事更新|
 |DELETE /posts/:id|必要|記事削除|
 |GET /categories|不要|カテゴリー一覧|
-|GET /pages/slug/:slug|不要|固定ページ取得|
 |GET/POST/PATCH/DELETE /media|必要|メディア管理|
 |GET/POST/PATCH/DELETE /block-types|必要|カスタムブロック定義管理|
 
@@ -271,13 +268,19 @@ JSON形式。一覧系は `{ "posts": [...] }` のように配列をラップし
 ## 対応済み機能
 
 ✅ 管理者ログイン
+
 ✅ 記事管理
-✅ 固定ページ管理
+
 ✅ カテゴリー管理
+
 ✅ メディア管理
+
 ✅ Block Editor
+
 ✅ Custom Block
+
 ✅ API提供
+
 ✅ 公開Webサイト連携
 
 ---
