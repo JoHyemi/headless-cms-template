@@ -58,7 +58,6 @@ Headless CMS(Content Management System)です。
 主な機能:
 
 - 記事作成・編集
-- 固定ページ管理(現時点では管理画面UIはなく、API経由での操作を想定)
 - カテゴリー管理
 - 画像管理
 - コンテンツ公開管理
@@ -112,14 +111,13 @@ CMS全体のデータ管理を担当するシステムです。
 |エンティティ|説明|
 |-|-|
 |Post|記事。タイトル・slug・本文(Block配列)・カテゴリー・公開状態を持つ|
-|Page|固定ページ。Postと同じBlock形式で本文を保持。カテゴリー・作成者の概念はない|
 |Category|カテゴリー。1つの記事が複数カテゴリーに属することが可能|
 |Media|アップロードされた画像ファイル。URL・Alt・キャプションを保持|
 |BlockType|カスタムブロックの設計図。名前・スラッグ・フィールドスキーマ(Json)を保持|
 
 ## 4.2 公開状態
 
-記事・固定ページは DRAFT / PUBLISHED の2状態を持つ。
+記事は DRAFT / PUBLISHED の2状態を持つ。
 DRAFT は管理画面にのみ表示され、API・公開サイトには表れない。
 
 ---
@@ -207,9 +205,6 @@ WordPressのACF(Advanced Custom Fields)と同様、コード変更なしに管�
 |POST /posts|必要|記事作成|
 |PATCH /posts/:id|必要|記事更新|
 |DELETE /posts/:id|必要|記事削除|
-|GET /pages/slug/:slug|不要|固定ページ詳細(公開済みのみ)|
-|GET /pages/all|必要|全固定ページ一覧(下書き含む)|
-|POST/PATCH/DELETE /pages(/:id)|必要|固定ページの作成/更新/削除|
 |GET /categories|不要|カテゴリー一覧|
 |GET/POST/PATCH/DELETE /media|必要|メディア管理|
 |GET/POST/PATCH/DELETE /block-types|必要|カスタムブロック定義管理|
@@ -276,8 +271,6 @@ JSON形式。一覧系は `{ "posts": [...] }` のように配列をラップし
 
 ✅ 記事管理
 
-✅ 固定ページ管理(APIのみ)
-
 ✅ カテゴリー管理
 
 ✅ メディア管理
@@ -298,7 +291,6 @@ JSON形式。一覧系は `{ "posts": [...] }` のように配列をラップし
 
 |項目|目的|
 |-|-|
-|固定ページの管理画面UI|現状APIのみの固定ページ操作をGUIで可能にする|
 |ユーザー権限管理|複数担当者で安全に利用|
 |承認Workflow|公開前チェック|
 |Version History|過去内容への復元|

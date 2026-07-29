@@ -24,8 +24,6 @@ WordPressのように **「1 CMS = 1 Site」** 構造に従うヘッドレス(he
   画像フィールドはどれも「メディアから選択」ボタンでアップロード済みの画像を選べ、選択すると
   URL・alt・キャプションが自動的に反映されます。
 - **カテゴリー管理**: 記事の作成/編集画面からその場でカテゴリーを新規作成できます。
-- **固定ページ(Page)**: 会社概要のような更新頻度の低いページ用のAPI(現時点では管理画面UIはなく、
-  API経由での操作を想定)。
 - **REST API**: 管理画面自身も内部ではこのAPIだけを呼び出す、数ある消費者の一つに過ぎません。
 - **デプロイテンプレート**: GitHub Actionsによる自動デプロイと、サーバーなしでcloudflaredの
   一時トンネルだけを使う対面デモ用スクリプトの両方を用意しています。
@@ -170,15 +168,6 @@ model Category {
   posts  Post[]
 }
 
-model Page {
-  id      String        @id @default(cuid())
-  siteId  String
-  title   String
-  slug    String        @unique
-  content Json
-  status  ContentStatus @default(DRAFT)
-}
-
 model Media {
   id       String  @id @default(cuid())
   siteId   String
@@ -201,7 +190,7 @@ model BlockType {
 
 ### コンテンツはブロックとして保存されます
 
-`Post.content`/`Page.content`は自由なテキストやHTMLではなく、決められた6種類のブロック
+`Post.content`は自由なテキストやHTMLではなく、決められた6種類のブロック
 (段落/見出し/リスト/引用/画像/画像ギャラリー、`packages/blocks`)の配列です。画面に表示する際も
 `BlockRenderer`がJSXで直接描画するため、`dangerouslySetInnerHTML`は使いません — 本文に
 `<script>`のような文字列を入れても、コードとして実行されず文字通りエスケープされて出力されます。
@@ -251,7 +240,6 @@ model BlockType {
 | DELETE | `/posts/:id` | ✅ | 記事の削除 |
 | GET | `/categories` | - | カテゴリー一覧 |
 | POST/PATCH/DELETE | `/categories(/:id)` | ✅ | カテゴリーの作成/更新/削除 |
-| GET/POST/PATCH/DELETE | `/pages(/:id)` | 一部 | Postと同じパターン(カテゴリー・作成者なし) |
 | GET/POST/PATCH/DELETE | `/media(/:id)` | ✅ | ファイルのアップロード(`multipart/form-data`。alt/captionも同時送信可)/一覧/alt・captionの更新/削除 |
 | GET/POST/PATCH/DELETE | `/block-types(/:id)` | ✅ | カスタムブロックのフィールド構成の作成/更新/削除・一覧取得(管理画面専用) |
 | POST | `/auth/login` | - | `{ email, password }` → セッションクッキー(JWT, httpOnly)を発行 |
@@ -305,7 +293,7 @@ curl -b cookies.txt -X POST http://localhost:4000/posts \
 
 `structure.md`に明記されている通り、今回のV1では**シンプルさと保守性**を優先します。
 
-- ✅ 含まれるもの: ログイン、Post、Page、Media、Category、カスタムブロック(ACFスタイル)、API、Website
+- ✅ 含まれるもの: ログイン、Post、Media、Category、カスタムブロック(ACFスタイル)、API、Website
 - ❌ 含まれないもの: Plugin、Theme、Multi-Site切り替えUI
 - 🔜 次の候補: [`SPEC.md`](./SPEC.md) の12章(今後検討する機能)を参照
 

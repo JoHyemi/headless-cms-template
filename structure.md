@@ -237,6 +237,6 @@ npm run prisma:migrate
 |-|-|
 |目的|WordPressを代替する自前のHeadless CMS開発|
 |技術スタック|Next.js / NestJS / Prisma / PostgreSQL|
-|対応済み|ログイン, Post(Block Editor + Custom Block), Page, Media, Category, API, Website|
+|対応済み|ログイン, Post(Block Editor + Custom Block), Media, Category, API, Website|
 |V1除外|Plugin, Theme, Multi Site|
 |今後の予定|[`SPEC.md`](./SPEC.md) の12章(今後検討する機能)を参照|
