@@ -23,7 +23,6 @@ model Site {
   createdAt  DateTime    @default(now())
   posts      Post[]
   categories Category[]
-  pages      Page[]
   media      Media[]
   blockTypes BlockType[]
 }
@@ -67,22 +66,6 @@ model Category {
   posts     Post[]
 
   @@index([siteId])
-}
-
-// 静的ページ(会社概要、利用規約など)。Postと違ってカテゴリー/作成者の概念がない
-// シンプルなコンテンツモデルです。Custom Post Typeのような汎用エンジンはV1の範囲外です。
-model Page {
-  id        String        @id @default(cuid())
-  site      Site          @relation(fields: [siteId], references: [id])
-  siteId    String
-  title     String
-  slug      String        @unique
-  content   Json
-  status    ContentStatus @default(DRAFT)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-
-  @@index([siteId, status])
 }
 
 // アップロードされた画像/ファイルのメタデータ。実際のファイルはAPIサーバーのローカルディスク

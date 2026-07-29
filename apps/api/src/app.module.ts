@@ -6,7 +6,6 @@ import { SiteModule } from "./site/site.module";
 import { AuthModule } from "./auth/auth.module";
 import { PostsModule } from "./posts/posts.module";
 import { CategoriesModule } from "./categories/categories.module";
-import { PagesModule } from "./pages/pages.module";
 import { MediaModule } from "./media/media.module";
 import { BlockTypesModule } from "./block-types/block-types.module";
 
@@ -21,7 +20,6 @@ import { BlockTypesModule } from "./block-types/block-types.module";
     AuthModule,
     PostsModule,
     CategoriesModule,
-    PagesModule,
     MediaModule,
     BlockTypesModule,
   ],
