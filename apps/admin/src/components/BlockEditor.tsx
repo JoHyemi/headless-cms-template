@@ -1,16 +1,18 @@
 "use client";
 
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import {
   BLOCK_TYPE_LABELS,
-  BLOCK_TYPES,
   emptyBlock,
   emptyCustomBlock,
   emptyGalleryImageItem,
   type Block,
   type FieldDef,
   type FieldValue,
+  type GalleryBlock,
   type GalleryImageItem,
 } from "@cms/blocks";
+import { BlockTypePickerModal } from "@/components/BlockTypePickerModal";
 import { ImageUrlField } from "@/components/ImageUrlField";
 import type { BlockTypeDTO } from "@/types/api";
 
@@ -25,6 +27,19 @@ type Props = {
 // blockTypesに渡されたカスタムブロック(ACFのフィールドグループに相当)も同じ要領で追加できます —
 // フィールドの構成だけをここで扱い、見た目はBlockRenderer側の登録済みレンダラーが担当します。
 export function BlockEditor({ blocks, onChange, blockTypes = [] }: Props) {
+  // ドラッグ中のブロックのインデックスと、現在ドラッグがかかっている(ドロップ先候補の)インデックス。
+  // ドロップ先の視覚的なハイライトにdragOverIndexを使う。
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  // HTML5のネイティブdraggable属性(dragstart/dragover/drop)は、ブラウザ側のドラッグセッション
+  // 認識に依存するため、環境によってはdropまで到達せずキャンセルされることがある。
+  // その代わりにpointerdown/pointermove/pointerupだけで完結する自前の並べ替えを実装している。
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const dragFromRef = useRef<number | null>(null);
+  const dragOverRef = useRef<number | null>(null);
+
   function updateBlock(index: number, next: Block) {
     onChange(blocks.map((b, i) => (i === index ? next : b)));
   }
@@ -41,24 +56,120 @@ export function BlockEditor({ blocks, onChange, blockTypes = [] }: Props) {
     onChange(next);
   }
 
+  function reorderBlock(from: number, to: number) {
+    if (from === to) return;
+    const next = [...blocks];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    onChange(next);
+  }
+
+  function startDrag(index: number) {
+    dragFromRef.current = index;
+    dragOverRef.current = index;
+    setDragIndex(index);
+    setDragOverIndex(index);
+
+    function onPointerMove(e: PointerEvent) {
+      const y = e.clientY;
+      for (let i = 0; i < itemRefs.current.length; i++) {
+        const el = itemRefs.current[i];
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        if (y >= rect.top && y <= rect.bottom) {
+          if (dragOverRef.current !== i) {
+            dragOverRef.current = i;
+            setDragOverIndex(i);
+          }
+          break;
+        }
+      }
+    }
+
+    function onPointerUp() {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      const from = dragFromRef.current;
+      const to = dragOverRef.current;
+      dragFromRef.current = null;
+      dragOverRef.current = null;
+      setDragIndex(null);
+      setDragOverIndex(null);
+      if (from !== null && to !== null) reorderBlock(from, to);
+    }
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+  }
+
   function addBlock(type: Exclude<Block["type"], "custom">) {
     onChange([...blocks, emptyBlock(type)]);
+    setPickerOpen(false);
   }
 
   function addCustomBlock(blockType: BlockTypeDTO) {
     onChange([...blocks, emptyCustomBlock(blockType.slug, blockType.fields)]);
+    setPickerOpen(false);
   }
 
   return (
     <div>
+      <div className="actions-row" style={{ marginBottom: "0.75rem" }}>
+        <button type="button" className="btn btn-primary" onClick={() => setPickerOpen(true)}>
+          + ブロックを追加
+        </button>
+      </div>
+
+      {pickerOpen && (
+        <BlockTypePickerModal
+          blockTypes={blockTypes}
+          onSelect={addBlock}
+          onSelectCustom={addCustomBlock}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
+
       {blocks.map((block, index) => (
-        <div key={index} className="card" style={{ marginBottom: "0.75rem" }}>
+        <div
+          key={index}
+          ref={(el) => {
+            itemRefs.current[index] = el;
+          }}
+          className="card"
+          style={{
+            marginBottom: "0.75rem",
+            outline:
+              dragOverIndex === index && dragIndex !== null && dragIndex !== index
+                ? "2px solid var(--accent)"
+                : undefined,
+          }}
+        >
           <div className="page-title-row" style={{ marginBottom: "0.75rem" }}>
-            <span className="badge badge-category">
-              {block.type === "custom"
-                ? (blockTypes.find((bt) => bt.slug === block.blockType)?.name ?? block.blockType)
-                : BLOCK_TYPE_LABELS[block.type]}
-            </span>
+            <div className="actions-row">
+              <span
+                onPointerDown={(e: ReactPointerEvent) => {
+                  e.preventDefault();
+                  startDrag(index);
+                }}
+                aria-label="ドラッグして並べ替え"
+                title="ドラッグして並べ替え"
+                style={{
+                  cursor: dragIndex === index ? "grabbing" : "grab",
+                  fontSize: "1.1rem",
+                  lineHeight: 1,
+                  color: "var(--muted)",
+                  userSelect: "none",
+                  touchAction: "none",
+                }}
+              >
+                ⠿
+              </span>
+              <span className="badge badge-category">
+                {block.type === "custom"
+                  ? (blockTypes.find((bt) => bt.slug === block.blockType)?.name ?? block.blockType)
+                  : BLOCK_TYPE_LABELS[block.type]}
+              </span>
+            </div>
             <div className="actions-row">
               <button
                 type="button"
@@ -96,24 +207,6 @@ export function BlockEditor({ blocks, onChange, blockTypes = [] }: Props) {
           />
         </div>
       ))}
-
-      <div className="actions-row">
-        {BLOCK_TYPES.map((type) => (
-          <button key={type} type="button" className="btn" onClick={() => addBlock(type)}>
-            + {BLOCK_TYPE_LABELS[type]}
-          </button>
-        ))}
-        {blockTypes.map((blockType) => (
-          <button
-            key={blockType.id}
-            type="button"
-            className="btn"
-            onClick={() => addCustomBlock(blockType)}
-          >
-            + {blockType.name}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
@@ -225,95 +318,8 @@ function BlockFields({
         </>
       );
 
-    case "gallery": {
-      const galleryBlock = block;
-
-      function updateImage(i: number, next: GalleryImageItem) {
-        onChange({
-          ...galleryBlock,
-          images: galleryBlock.images.map((img, idx) => (idx === i ? next : img)),
-        });
-      }
-
-      function addImage() {
-        onChange({ ...galleryBlock, images: [...galleryBlock.images, emptyGalleryImageItem()] });
-      }
-
-      function removeImage(i: number) {
-        onChange({ ...galleryBlock, images: galleryBlock.images.filter((_, idx) => idx !== i) });
-      }
-
-      function moveImage(i: number, direction: -1 | 1) {
-        const target = i + direction;
-        if (target < 0 || target >= galleryBlock.images.length) return;
-        const next = [...galleryBlock.images];
-        [next[i], next[target]] = [next[target], next[i]];
-        onChange({ ...galleryBlock, images: next });
-      }
-
-      return (
-        <>
-          {galleryBlock.images.map((image, i) => (
-            <div
-              key={i}
-              style={{
-                border: "1px solid var(--border)",
-                borderRadius: "10px",
-                padding: "0.75rem",
-                marginBottom: "0.5rem",
-              }}
-            >
-              <div className="actions-row" style={{ marginBottom: "0.5rem", justifyContent: "flex-end" }}>
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => moveImage(i, -1)}
-                  disabled={i === 0}
-                  aria-label="上へ移動"
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => moveImage(i, 1)}
-                  disabled={i === galleryBlock.images.length - 1}
-                  aria-label="下へ移動"
-                >
-                  ↓
-                </button>
-                <button type="button" className="btn btn-danger" onClick={() => removeImage(i)}>
-                  削除
-                </button>
-              </div>
-              <div style={{ marginBottom: "0.5rem" }}>
-                <ImageUrlField
-                  value={image.url}
-                  onChange={(url) => updateImage(i, { ...image, url })}
-                  onPick={({ url, alt, caption }) => updateImage(i, { ...image, url, alt, caption })}
-                />
-              </div>
-              <input
-                type="text"
-                value={image.alt}
-                onChange={(e) => updateImage(i, { ...image, alt: e.target.value })}
-                placeholder="代替テキスト（alt）"
-                style={{ marginBottom: "0.5rem" }}
-              />
-              <input
-                type="text"
-                value={image.caption ?? ""}
-                onChange={(e) => updateImage(i, { ...image, caption: e.target.value })}
-                placeholder="キャプション（任意）"
-              />
-            </div>
-          ))}
-          <button type="button" className="btn" onClick={addImage}>
-            + 画像を追加
-          </button>
-        </>
-      );
-    }
+    case "gallery":
+      return <GalleryBlockFields block={block} onChange={onChange} />;
 
     case "custom": {
       const customBlock = block;
@@ -344,6 +350,177 @@ function BlockFields({
       );
     }
   }
+}
+
+// 画像ギャラリー内の画像も、本文ブロックと同じ要領でドラッグハンドル(⠿)による並べ替えに対応します。
+function GalleryBlockFields({
+  block,
+  onChange,
+}: {
+  block: GalleryBlock;
+  onChange: (block: Block) => void;
+}) {
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const dragFromRef = useRef<number | null>(null);
+  const dragOverRef = useRef<number | null>(null);
+
+  function updateImage(i: number, next: GalleryImageItem) {
+    onChange({ ...block, images: block.images.map((img, idx) => (idx === i ? next : img)) });
+  }
+
+  function addImage() {
+    onChange({ ...block, images: [...block.images, emptyGalleryImageItem()] });
+  }
+
+  function removeImage(i: number) {
+    onChange({ ...block, images: block.images.filter((_, idx) => idx !== i) });
+  }
+
+  function moveImage(i: number, direction: -1 | 1) {
+    const target = i + direction;
+    if (target < 0 || target >= block.images.length) return;
+    const next = [...block.images];
+    [next[i], next[target]] = [next[target], next[i]];
+    onChange({ ...block, images: next });
+  }
+
+  function reorderImage(from: number, to: number) {
+    if (from === to) return;
+    const next = [...block.images];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    onChange({ ...block, images: next });
+  }
+
+  function startDrag(index: number) {
+    dragFromRef.current = index;
+    dragOverRef.current = index;
+    setDragIndex(index);
+    setDragOverIndex(index);
+
+    function onPointerMove(e: PointerEvent) {
+      const y = e.clientY;
+      for (let i = 0; i < itemRefs.current.length; i++) {
+        const el = itemRefs.current[i];
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        if (y >= rect.top && y <= rect.bottom) {
+          if (dragOverRef.current !== i) {
+            dragOverRef.current = i;
+            setDragOverIndex(i);
+          }
+          break;
+        }
+      }
+    }
+
+    function onPointerUp() {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      const from = dragFromRef.current;
+      const to = dragOverRef.current;
+      dragFromRef.current = null;
+      dragOverRef.current = null;
+      setDragIndex(null);
+      setDragOverIndex(null);
+      if (from !== null && to !== null) reorderImage(from, to);
+    }
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+  }
+
+  return (
+    <>
+      {block.images.map((image, i) => (
+        <div
+          key={i}
+          ref={(el) => {
+            itemRefs.current[i] = el;
+          }}
+          style={{
+            border: "1px solid var(--border)",
+            borderRadius: "10px",
+            padding: "0.75rem",
+            marginBottom: "0.5rem",
+            outline:
+              dragOverIndex === i && dragIndex !== null && dragIndex !== i
+                ? "2px solid var(--accent)"
+                : undefined,
+          }}
+        >
+          <div className="actions-row" style={{ marginBottom: "0.5rem", justifyContent: "space-between" }}>
+            <span
+              onPointerDown={(e: ReactPointerEvent) => {
+                e.preventDefault();
+                startDrag(i);
+              }}
+              aria-label="ドラッグして並べ替え"
+              title="ドラッグして並べ替え"
+              style={{
+                cursor: dragIndex === i ? "grabbing" : "grab",
+                fontSize: "1.1rem",
+                lineHeight: 1,
+                color: "var(--muted)",
+                userSelect: "none",
+                touchAction: "none",
+              }}
+            >
+              ⠿
+            </span>
+            <div className="actions-row">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => moveImage(i, -1)}
+                disabled={i === 0}
+                aria-label="上へ移動"
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => moveImage(i, 1)}
+                disabled={i === block.images.length - 1}
+                aria-label="下へ移動"
+              >
+                ↓
+              </button>
+              <button type="button" className="btn btn-danger" onClick={() => removeImage(i)}>
+                削除
+              </button>
+            </div>
+          </div>
+          <div style={{ marginBottom: "0.5rem" }}>
+            <ImageUrlField
+              value={image.url}
+              onChange={(url) => updateImage(i, { ...image, url })}
+              onPick={({ url, alt, caption }) => updateImage(i, { ...image, url, alt, caption })}
+            />
+          </div>
+          <input
+            type="text"
+            value={image.alt}
+            onChange={(e) => updateImage(i, { ...image, alt: e.target.value })}
+            placeholder="代替テキスト（alt）"
+            style={{ marginBottom: "0.5rem" }}
+          />
+          <input
+            type="text"
+            value={image.caption ?? ""}
+            onChange={(e) => updateImage(i, { ...image, caption: e.target.value })}
+            placeholder="キャプション（任意）"
+          />
+        </div>
+      ))}
+      <button type="button" className="btn" onClick={addImage}>
+        + 画像を追加
+      </button>
+    </>
+  );
 }
 
 function CustomFieldInput({
