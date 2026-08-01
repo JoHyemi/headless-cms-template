@@ -1,5 +1,5 @@
 import { ContentStatus } from "@prisma/client";
-import { IsArray, IsEnum, IsOptional, IsString, MinLength } from "class-validator";
+import { IsArray, IsDateString, IsEnum, IsOptional, IsString, MinLength } from "class-validator";
 
 export class CreatePostDto {
   @IsString()
@@ -19,6 +19,11 @@ export class CreatePostDto {
   @IsOptional()
   @IsEnum(ContentStatus)
   status?: ContentStatus;
+
+  // SCHEDULED時にのみ必須(サービス側で検証)。ISO 8601形式の日時文字列。
+  @IsOptional()
+  @IsDateString()
+  publishAt?: string;
 
   @IsOptional()
   @IsString()

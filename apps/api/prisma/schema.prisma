@@ -12,6 +12,7 @@ datasource db {
 
 enum ContentStatus {
   DRAFT // 下書き(未公開)
+  SCHEDULED // 予約公開待ち。publishAtの時刻が来ると自動的にPUBLISHEDへ切り替わる
   PUBLISHED // 公開済み(公開API/サイトに露出)
 }
 
@@ -45,6 +46,7 @@ model Post {
   excerpt     String? // 一覧に表示する要約。なければ本文から自動生成
   content     Json // 本文 — ブロックエディタのBlock[](packages/blocks参照)
   status      ContentStatus @default(DRAFT)
+  publishAt   DateTime? // SCHEDULED時の公開予定日時。他のステータスでは未使用
   author      String        @default("Admin")
   thumbnail   Media?        @relation(fields: [thumbnailId], references: [id])
   thumbnailId String?
@@ -53,6 +55,7 @@ model Post {
   categories  Category[]
 
   @@index([siteId, status, createdAt])
+  @@index([status, publishAt])
 }
 
 // WordPressのカテゴリーのように、1つの記事が複数のカテゴリーに属することができます(多対多)。

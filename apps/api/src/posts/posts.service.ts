@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { Cron, CronExpression } from "@nestjs/schedule";
 import { ContentStatus, Prisma } from "@prisma/client";
 import { blocksToPlainText, isBlockArray, normalizeBlocks, toContentDTO } from "@cms/blocks";
 import { PrismaService } from "../prisma/prisma.service";
@@ -67,6 +68,8 @@ export class PostsService {
       throw new BadRequestException("titleまたはslugから有効なslugを作成できません。");
     }
 
+    this.validateScheduling(dto.status, dto.publishAt);
+
     try {
       const post = await this.prisma.post.create({
         data: {
@@ -75,6 +78,7 @@ export class PostsService {
           content: blocks as unknown as Prisma.InputJsonValue,
           excerpt: dto.excerpt?.trim() || makeExcerpt(blocksToPlainText(blocks)),
           status: dto.status ?? ContentStatus.DRAFT,
+          publishAt: dto.publishAt ? new Date(dto.publishAt) : undefined,
           author: dto.author?.trim() || undefined,
           siteId: await this.site.getSiteId(),
           categories: dto.categoryIds
@@ -96,6 +100,8 @@ export class PostsService {
   }
 
   async update(id: string, dto: UpdatePostDto) {
+    this.validateScheduling(dto.status, dto.publishAt);
+
     const data: Prisma.PostUpdateInput = {};
 
     if (dto.title?.trim()) data.title = dto.title.trim();
@@ -114,6 +120,7 @@ export class PostsService {
     if (dto.excerpt !== undefined) data.excerpt = dto.excerpt.trim() || null;
     if (dto.author?.trim()) data.author = dto.author.trim();
     if (dto.status !== undefined) data.status = dto.status;
+    if (dto.publishAt !== undefined) data.publishAt = new Date(dto.publishAt);
     if (dto.slug?.trim()) {
       const newSlug = slugify(dto.slug);
       if (!newSlug) throw new BadRequestException("無効なslugです。");
@@ -158,5 +165,25 @@ export class PostsService {
       suffix += 1;
     }
     return candidate;
+  }
+
+  private validateScheduling(status: ContentStatus | undefined, publishAt: string | undefined) {
+    if (status !== ContentStatus.SCHEDULED) return;
+    if (!publishAt) {
+      throw new BadRequestException("予約公開には公開予定日時(publishAt)の指定が必要です。");
+    }
+    if (new Date(publishAt).getTime() <= Date.now()) {
+      throw new BadRequestException("公開予定日時は未来の日時を指定してください。");
+    }
+  }
+
+  /** 1分ごとに、予約時刻を過ぎたSCHEDULED記事をPUBLISHEDへ切り替えます。
+   *  DBのpublishAtで判定するため、サーバー再起動をまたいでも予約は失われません。 */
+  @Cron(CronExpression.EVERY_MINUTE)
+  async publishScheduledPosts() {
+    await this.prisma.post.updateMany({
+      where: { status: ContentStatus.SCHEDULED, publishAt: { lte: new Date() } },
+      data: { status: ContentStatus.PUBLISHED },
+    });
   }
 }

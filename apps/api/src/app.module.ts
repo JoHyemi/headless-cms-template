@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { ScheduleModule } from "@nestjs/schedule";
 import { ServeStaticModule } from "@nestjs/serve-static";
 import { join } from "node:path";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -11,6 +12,7 @@ import { BlockTypesModule } from "./block-types/block-types.module";
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     PrismaModule,
     SiteModule,
     ServeStaticModule.forRoot({
