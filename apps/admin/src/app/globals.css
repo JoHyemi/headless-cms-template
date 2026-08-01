@@ -12,6 +12,8 @@
   --danger-bg: #ffe4e9;
   --draft: #c2410c;
   --draft-bg: #ffedd5;
+  --scheduled: #7c3aed;
+  --scheduled-bg: #ede9fe;
   --published: #16a34a;
   --published-bg: #dcfce7;
   --shadow-sm: 0 1px 2px rgba(18, 23, 43, 0.05);
@@ -33,6 +35,8 @@
     --danger-bg: #3f1224;
     --draft: #fbbf24;
     --draft-bg: #422006;
+    --scheduled: #a78bfa;
+    --scheduled-bg: #2e1065;
     --published: #4ade80;
     --published-bg: #052e16;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
@@ -231,6 +235,11 @@ textarea {
 .badge-draft {
   color: var(--draft);
   background: var(--draft-bg);
+}
+
+.badge-scheduled {
+  color: var(--scheduled);
+  background: var(--scheduled-bg);
 }
 
 .badge-published {

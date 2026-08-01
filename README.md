@@ -24,6 +24,10 @@ WordPressのように **「1 CMS = 1 Site」** 構造に従うヘッドレス(he
   画像フィールドはどれも「メディアから選択」ボタンでアップロード済みの画像を選べ、選択すると
   URL・alt・キャプションが自動的に反映されます。
 - **カテゴリー管理**: 記事の作成/編集画面からその場でカテゴリーを新規作成できます。
+- **予約公開**: ステータスを「予約公開 (SCHEDULED)」にして公開予定日時を指定すると、
+  1分ごとに動くスケジューラ(`@nestjs/schedule`)がその時刻を過ぎた記事を自動的に
+  公開(PUBLISHED)へ切り替えます。判定はDBの日時を基準にするため、サーバーを
+  再起動しても予約は失われません。
 - **REST API**: 管理画面自身も内部ではこのAPIだけを呼び出す、数ある消費者の一つに過ぎません。
 - **デプロイテンプレート**: GitHub Actionsによる自動デプロイと、サーバーなしでcloudflaredの
   一時トンネルだけを使う対面デモ用スクリプトの両方を用意しています。
@@ -122,7 +126,8 @@ npm run dev
    「メディアから選択」でアップロード済みの画像を選べ、URL・alt・キャプションが自動で入ります。
 4. **プレビューで確認** — 画面右上の「プレビュー」で、保存前に公開時と同じ見た目を確認できます。
 5. **カテゴリーを選んで保存/公開** — 既存のカテゴリーから選ぶか、その場で新規作成できます。
-   「保存」(下書きのまま)か「保存してすぐ公開」を選びます。
+   「保存」(下書きのまま)か「保存してすぐ公開」を選びます。ステータスを「予約公開」にして
+   日時を指定すれば、その時刻に自動で公開されます。
 6. **公開サイトで確認** — `http://localhost:3000` で実際に表示されているか確認します。
 7. **(必要なら)カスタムブロックを追加** — 「カスタムブロック」→「+ 新規作成」でブロック名と
    フィールド構成(キー・ラベル・型・必須)を定義します。フィールドの値をどんな見た目で描画
@@ -154,7 +159,8 @@ model Post {
   slug        String        @unique
   excerpt     String?
   content     Json          // ブロックエディタのBlock[](packages/blocks参照)
-  status      ContentStatus @default(DRAFT) // DRAFT | PUBLISHED
+  status      ContentStatus @default(DRAFT) // DRAFT | SCHEDULED | PUBLISHED
+  publishAt   DateTime?     // SCHEDULED時の公開予定日時
   author      String        @default("Admin")
   thumbnailId String?       // Media参照(任意)
   categories  Category[]

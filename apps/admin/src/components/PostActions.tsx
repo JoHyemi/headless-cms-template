@@ -7,7 +7,7 @@ import { apiFetch } from "@/lib/api-client";
 
 type Props = {
   id: string;
-  status: "DRAFT" | "PUBLISHED";
+  status: "DRAFT" | "SCHEDULED" | "PUBLISHED";
 };
 
 // 管理者記事一覧で使う「公開/下書き切り替え」及び「削除」ボタン。

@@ -28,13 +28,28 @@ export default async function AdminPostsPage() {
               <h2 style={{ fontSize: "1.1rem" }}>
                 <Link href={`/posts/${post.id}/edit`}>{post.title}</Link>
               </h2>
-              <span className={post.status === "PUBLISHED" ? "badge badge-published" : "badge badge-draft"}>
-                {post.status === "PUBLISHED" ? "公開済み" : "下書き"}
+              <span
+                className={
+                  post.status === "PUBLISHED"
+                    ? "badge badge-published"
+                    : post.status === "SCHEDULED"
+                      ? "badge badge-scheduled"
+                      : "badge badge-draft"
+                }
+              >
+                {post.status === "PUBLISHED"
+                  ? "公開済み"
+                  : post.status === "SCHEDULED"
+                    ? "予約公開"
+                    : "下書き"}
               </span>
             </div>
             <p className="muted">
               /{post.slug} · {post.author} ·{" "}
               {new Date(post.updatedAt).toLocaleString("ja-JP")}
+              {post.status === "SCHEDULED" && post.publishAt && (
+                <> · 公開予定: {new Date(post.publishAt).toLocaleString("ja-JP")}</>
+              )}
             </p>
             {post.categories.length > 0 && (
               <div className="actions-row" style={{ marginTop: "0.5rem" }}>

@@ -34,7 +34,8 @@ export type PostDTO = {
   excerpt: string | null;
   content: Block[];
   contentHtml: string;
-  status: "DRAFT" | "PUBLISHED";
+  status: "DRAFT" | "SCHEDULED" | "PUBLISHED";
+  publishAt: string | null;
   author: string;
   createdAt: string;
   updatedAt: string;

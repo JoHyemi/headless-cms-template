@@ -40,6 +40,15 @@ function findMissingRequiredField(blocks: Block[], blockTypes: BlockTypeDTO[]): 
   return null;
 }
 
+// <input type="datetime-local">は"YYYY-MM-DDTHH:mm"をローカル時刻として扱うため、
+// DBのISO文字列(UTC)をローカルのgetter(getHours等)で変換する(getUTCHours等は使わない)。
+function toDatetimeLocalValue(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 type Props = {
   mode: "create" | "edit";
   post?: PostDTO;
@@ -54,7 +63,8 @@ export function PostForm({ mode, post, allCategories, blockTypes = [] }: Props) 
   const [blocks, setBlocks] = useState<Block[]>(post ? post.content : defaultBlocks());
   const [author, setAuthor] = useState(post?.author ?? "");
   const [slug, setSlug] = useState(post?.slug ?? "");
-  const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">(post?.status ?? "DRAFT");
+  const [status, setStatus] = useState<"DRAFT" | "SCHEDULED" | "PUBLISHED">(post?.status ?? "DRAFT");
+  const [publishAt, setPublishAt] = useState(toDatetimeLocalValue(post?.publishAt));
   const [categoryIds, setCategoryIds] = useState<string[]>(
     post?.categories.map((c) => c.id) ?? []
   );
@@ -119,9 +129,20 @@ export function PostForm({ mode, post, allCategories, blockTypes = [] }: Props) 
       return;
     }
 
-    setSubmitting(true);
-
     const finalStatus = publish === undefined ? status : publish ? "PUBLISHED" : "DRAFT";
+
+    if (finalStatus === "SCHEDULED") {
+      if (!publishAt) {
+        setError("予約公開には公開予定日時を指定してください。");
+        return;
+      }
+      if (new Date(publishAt).getTime() <= Date.now()) {
+        setError("公開予定日時は未来の日時を指定してください。");
+        return;
+      }
+    }
+
+    setSubmitting(true);
 
     try {
       const res = await apiFetch(mode === "create" ? "/posts" : `/posts/${post!.id}`, {
@@ -131,6 +152,9 @@ export function PostForm({ mode, post, allCategories, blockTypes = [] }: Props) 
           content: cleanedBlocks,
           author: author || undefined,
           status: finalStatus,
+          ...(finalStatus === "SCHEDULED"
+            ? { publishAt: new Date(publishAt).toISOString() }
+            : {}),
           categoryIds,
           ...(mode === "edit" ? { slug } : {}),
         }),
@@ -235,12 +259,31 @@ export function PostForm({ mode, post, allCategories, blockTypes = [] }: Props) 
                   <select
                     id="status"
                     value={status}
-                    onChange={(e) => setStatus(e.target.value as "DRAFT" | "PUBLISHED")}
+                    onChange={(e) =>
+                      setStatus(e.target.value as "DRAFT" | "SCHEDULED" | "PUBLISHED")
+                    }
                   >
                     <option value="DRAFT">下書き (DRAFT)</option>
+                    <option value="SCHEDULED">予約公開 (SCHEDULED)</option>
                     <option value="PUBLISHED">公開 (PUBLISHED)</option>
                   </select>
                 </div>
+
+                {status === "SCHEDULED" && (
+                  <div className="field">
+                    <label htmlFor="publishAt">公開予定日時</label>
+                    <input
+                      id="publishAt"
+                      type="datetime-local"
+                      value={publishAt}
+                      onChange={(e) => setPublishAt(e.target.value)}
+                      required
+                    />
+                    <span className="hint">
+                      この日時になると自動的に公開(PUBLISHED)に切り替わります。
+                    </span>
+                  </div>
+                )}
 
                 {mode === "edit" ? (
                   <div className="field">
