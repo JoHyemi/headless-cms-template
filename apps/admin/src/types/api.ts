@@ -1,4 +1,4 @@
-import type { Block, FieldDef } from "@cms/blocks";
+import type { Block, FieldDef, FieldValue } from "@cms/blocks";
 
 export type BlockTypeDTO = {
   id: string;
@@ -40,4 +40,26 @@ export type PostDTO = {
   createdAt: string;
   updatedAt: string;
   categories: CategoryDTO[];
+};
+
+export type PostTypeDTO = {
+  id: string;
+  name: string;
+  slug: string;
+  fields: FieldDef[];
+  createdAt: string;
+  updatedAt: string;
+  _count?: { entries: number };
+};
+
+export type PostTypeEntryDTO = {
+  id: string;
+  postTypeId: string;
+  title: string;
+  slug: string;
+  fieldValues: Record<string, FieldValue>;
+  status: "DRAFT" | "SCHEDULED" | "PUBLISHED";
+  publishAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 };

@@ -18,14 +18,17 @@ enum ContentStatus {
 
 // 将来のマルチサイト拡張のための場所。V1ではこのテーブルに行が1つだけ存在します。
 model Site {
-  id         String      @id @default(cuid())
-  name       String
-  domain     String      @unique
-  createdAt  DateTime    @default(now())
-  posts      Post[]
-  categories Category[]
-  media      Media[]
-  blockTypes BlockType[]
+  id              String          @id @default(cuid())
+  name            String
+  domain          String          @unique
+  createdAt       DateTime        @default(now())
+  posts           Post[]
+  pages           Page[]
+  categories      Category[]
+  media           Media[]
+  blockTypes      BlockType[]
+  postTypes       PostType[]
+  postTypeEntries PostTypeEntry[]
 }
 
 // 管理者ログインアカウント。V1では1サイトに管理者1名のみを想定します(権限/ロールの区別なし)。
@@ -71,6 +74,24 @@ model Category {
   @@index([siteId])
 }
 
+// 静的ページ(会社概要、利用規約など)。Postと違ってカテゴリー/作成者の概念がない
+// シンプルなコンテンツモデルです。WordPressインポート時のpage投稿タイプの受け皿にもなります。
+model Page {
+  id        String        @id @default(cuid())
+  site      Site          @relation(fields: [siteId], references: [id])
+  siteId    String
+  title     String
+  slug      String        @unique
+  content   Json
+  status    ContentStatus @default(DRAFT)
+  publishAt DateTime? // SCHEDULED時の公開予定日時。他のステータスでは未使用
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([siteId, status])
+  @@index([status, publishAt])
+}
+
 // アップロードされた画像/ファイルのメタデータ。実際のファイルはAPIサーバーのローカルディスク
 // (apps/api/uploads)に保存され、urlはそのファイルを指す絶対/相対パスです。
 model Media {
@@ -104,4 +125,42 @@ model BlockType {
   updatedAt DateTime @updatedAt
 
   @@index([siteId])
+}
+
+// WordPressのCustom Post Typeに相当する、独自コンテンツタイプの定義。BlockTypeと同様、
+// 管理画面ではフィールド構成(FieldDef[])だけを定義する。実データはPostTypeEntryに保存される。
+model PostType {
+  id        String          @id @default(cuid())
+  site      Site            @relation(fields: [siteId], references: [id])
+  siteId    String
+  name      String
+  slug      String          @unique
+  fields    Json // FieldDef[](packages/blocks参照)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  entries   PostTypeEntry[]
+
+  @@index([siteId])
+}
+
+// PostTypeごとのデータ本体。Post/Pageと違い本文はBlock[]ではなく、PostType.fieldsで定義された
+// フィールド値(Record<string, FieldValue>、packages/blocks FieldValue参照)として保存する。
+// slugはPost/Pageと違いグローバル一意ではなく、投稿タイプ内で一意(@@unique([postTypeId, slug]))。
+model PostTypeEntry {
+  id          String        @id @default(cuid())
+  site        Site          @relation(fields: [siteId], references: [id])
+  siteId      String
+  postType    PostType      @relation(fields: [postTypeId], references: [id], onDelete: Cascade)
+  postTypeId  String
+  title       String
+  slug        String
+  fieldValues Json // Record<string, FieldValue>(packages/blocks参照)
+  status      ContentStatus @default(DRAFT)
+  publishAt   DateTime? // SCHEDULED時の公開予定日時。他のステータスでは未使用
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([postTypeId, slug])
+  @@index([postTypeId, status, createdAt])
+  @@index([status, publishAt])
 }

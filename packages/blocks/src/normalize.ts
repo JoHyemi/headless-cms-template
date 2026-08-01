@@ -1,4 +1,4 @@
-import { FIELD_TYPES, type Block, type FieldDef } from "./types";
+import { FIELD_TYPES, type Block, type FieldDef, type FieldValue } from "./types";
 
 function isString(value: unknown): value is string {
   return typeof value === "string";
@@ -46,6 +46,25 @@ export function isFieldDef(value: unknown): value is FieldDef {
  *  ならないため許可しません。 */
 export function isFieldDefArray(value: unknown): value is FieldDef[] {
   return Array.isArray(value) && value.length > 0 && value.every(isFieldDef);
+}
+
+/** CustomBlock.fields / PostTypeEntry.fieldValuesが取り得る「キー:値」形の形(shape)を検査します。
+ *  値はstring/number/booleanのみ許可し、対象のFieldDef側の必須チェックはここでは行いません
+ *  (CustomBlockと同じく、必須項目のチェックは管理画面側のUXとして行う)。 */
+export function isFieldValueMap(value: unknown): value is Record<string, FieldValue> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  return Object.values(value as Record<string, unknown>).every(
+    (v) => typeof v === "string" || typeof v === "number" || typeof v === "boolean"
+  );
+}
+
+/** フィールド値マップの文字列値の前後空白を整理します。 */
+export function normalizeFieldValueMap(
+  value: Record<string, FieldValue>
+): Record<string, FieldValue> {
+  return Object.fromEntries(
+    Object.entries(value).map(([key, v]) => [key, typeof v === "string" ? v.trim() : v])
+  );
 }
 
 /** 値がBlock型の形(shape)を満たしているかだけを検査します。空文字列などの「内容なし」は許容し、

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "@cms/ui";
 import { apiFetch } from "@/lib/api-client";
+import type { PostTypeDTO } from "@/types/api";
 
 const WEBSITE_URL = process.env.NEXT_PUBLIC_WEBSITE_URL ?? "http://localhost:3000";
 
@@ -13,9 +14,13 @@ const menuItems = [
   { href: "/categories", label: "カテゴリー管理", icon: "🗂️" },
   { href: "/media", label: "メディア", icon: "🖼️" },
   { href: "/block-types", label: "カスタムブロック", icon: "🧩" },
+  { href: "/post-types", label: "カスタム投稿タイプ", icon: "🗃️" },
+  { href: "/import", label: "WordPressインポート", icon: "📥" },
 ];
 
-export function AdminSidebar() {
+type Props = { postTypes?: PostTypeDTO[] };
+
+export function AdminSidebar({ postTypes = [] }: Props) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -39,7 +44,9 @@ export function AdminSidebar() {
               ? pathname === "/posts" || /^\/posts\/[^/]+\/edit/.test(pathname)
               : item.href === "/block-types"
                 ? pathname === "/block-types" || pathname.startsWith("/block-types/")
-                : pathname === item.href;
+                : item.href === "/post-types"
+                  ? pathname === "/post-types" || pathname.startsWith("/post-types/")
+                  : pathname === item.href;
 
           return (
             <Link
@@ -52,6 +59,26 @@ export function AdminSidebar() {
             </Link>
           );
         })}
+
+        {postTypes.length > 0 && (
+          <>
+            <div className="admin-sidebar-section-label">投稿タイプ別エントリー</div>
+            {postTypes.map((postType) => {
+              const href = `/entries/${encodeURIComponent(postType.slug)}`;
+              const isActive = pathname.startsWith(href);
+              return (
+                <Link
+                  key={postType.id}
+                  href={href}
+                  className={`admin-sidebar-link${isActive ? " admin-sidebar-link-active" : ""}`}
+                >
+                  <span className="admin-sidebar-icon">📦</span>
+                  {postType.name}
+                </Link>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       <div className="admin-sidebar-footer">

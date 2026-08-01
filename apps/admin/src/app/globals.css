@@ -476,6 +476,15 @@ a.badge-category:hover {
   border-top: 1px solid var(--border);
 }
 
+.admin-sidebar-section-label {
+  padding: 0.9rem 0.75rem 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .admin-sidebar-link {
   display: flex;
   align-items: center;
