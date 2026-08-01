@@ -24,10 +24,20 @@ WordPressのように **「1 CMS = 1 Site」** 構造に従うヘッドレス(he
   画像フィールドはどれも「メディアから選択」ボタンでアップロード済みの画像を選べ、選択すると
   URL・alt・キャプションが自動的に反映されます。
 - **カテゴリー管理**: 記事の作成/編集画面からその場でカテゴリーを新規作成できます。
+- **固定ページ(Page)**: 会社概要のような更新頻度の低いページ用のAPI(現時点では管理画面UIはなく、
+  API経由での操作を想定)。
 - **予約公開**: ステータスを「予約公開 (SCHEDULED)」にして公開予定日時を指定すると、
-  1分ごとに動くスケジューラ(`@nestjs/schedule`)がその時刻を過ぎた記事を自動的に
+  1分ごとに動くスケジューラ(`@nestjs/schedule`)がその時刻を過ぎた記事・固定ページを自動的に
   公開(PUBLISHED)へ切り替えます。判定はDBの日時を基準にするため、サーバーを
   再起動しても予約は失われません。
+- **WordPressインポート**: WordPressの標準エクスポート(WXR、`.xml`)をアップロードすると、
+  記事・固定ページ・カテゴリー・タグ(タグはカテゴリーへ合流)を一括で取り込みます。本文の
+  生HTMLはこのCMSのブロック形式に変換され(装飾はプレーンテキスト化)、画像は元のURLを
+  そのまま参照します。
+- **カスタム投稿タイプ(Custom Post Type)**: 記事(Post)とは別に、「商品」「お客様の声」の
+  ような独自の構造を持つコンテンツタイプを管理画面から定義できます。定義したフィールド構成
+  ごとに専用のエントリー管理画面がサイドバーに追加され、公開データはAPI
+  (`GET /post-types/:slug`)で取得できます。
 - **REST API**: 管理画面自身も内部ではこのAPIだけを呼び出す、数ある消費者の一つに過ぎません。
 - **デプロイテンプレート**: GitHub Actionsによる自動デプロイと、サーバーなしでcloudflaredの
   一時トンネルだけを使う対面デモ用スクリプトの両方を用意しています。
@@ -174,6 +184,16 @@ model Category {
   posts  Post[]
 }
 
+model Page {
+  id        String        @id @default(cuid())
+  siteId    String
+  title     String
+  slug      String        @unique
+  content   Json
+  status    ContentStatus @default(DRAFT) // DRAFT | SCHEDULED | PUBLISHED
+  publishAt DateTime?     // SCHEDULED時の公開予定日時
+}
+
 model Media {
   id       String  @id @default(cuid())
   siteId   String
@@ -192,11 +212,31 @@ model BlockType {
   slug   String @unique
   fields Json   // FieldDef[](packages/blocks参照) — カスタムブロックのフィールド構成
 }
+
+model PostType {
+  id     String @id @default(cuid())
+  siteId String
+  name   String
+  slug   String @unique
+  fields Json   // FieldDef[](packages/blocks参照) — カスタム投稿タイプのフィールド構成
+  entries PostTypeEntry[]
+}
+
+model PostTypeEntry {
+  id          String        @id @default(cuid())
+  siteId      String
+  postTypeId  String
+  title       String
+  slug        String        // PostType内で一意(グローバルではない)
+  fieldValues Json          // Record<string, FieldValue>(packages/blocks参照)
+  status      ContentStatus @default(DRAFT) // DRAFT | SCHEDULED | PUBLISHED
+  publishAt   DateTime?     // SCHEDULED時の公開予定日時
+}
 ```
 
 ### コンテンツはブロックとして保存されます
 
-`Post.content`は自由なテキストやHTMLではなく、決められた6種類のブロック
+`Post.content`/`Page.content`は自由なテキストやHTMLではなく、決められた6種類のブロック
 (段落/見出し/リスト/引用/画像/画像ギャラリー、`packages/blocks`)の配列です。画面に表示する際も
 `BlockRenderer`がJSXで直接描画するため、`dangerouslySetInnerHTML`は使いません — 本文に
 `<script>`のような文字列を入れても、コードとして実行されず文字通りエスケープされて出力されます。
@@ -233,6 +273,39 @@ model BlockType {
 キャプションが自動的にブロックへコピーされます(altが未登録の場合はファイル名から読める形の
 文字列を代わりに使い、altが必ず空にならないようにしています)。
 
+### WordPressインポート
+
+管理画面の「WordPressインポート」画面(`/import`)で、WordPressの「ツール」→「エクスポート」から
+書き出したWXR形式(`.xml`)のファイルを1つアップロードすると、記事・固定ページ・カテゴリー・
+タグをまとめて取り込みます(タグはこのCMSにタグの概念がないためカテゴリーへ合流します)。
+
+- 本文(`content:encoded`)は生HTMLのまま保存せず、既存のブロック変換ロジックで段落・見出し・
+  リスト・引用・画像・画像ギャラリーへマッピングします。太字やリンクなどのインライン装飾、
+  ショートコードや埋め込みのようにマッピングできない要素はプレーンテキストに変換されます
+  (このCMSは自由なHTMLを保存しない設計のため、生HTMLがそのまま保存されることはありません)。
+- 画像は元のURLをそのまま参照し、このCMSへの再アップロードは行いません。
+- 添付ファイル(メディア)・メニュー・カスタム投稿タイプ、および「ゴミ箱」「自動下書き」の
+  項目は取り込み対象外です。
+- WordPressの「予約投稿」は、日時が未来であれば予約公開(SCHEDULED)として取り込まれます。
+- 項目ごとに成功/失敗を分離して処理するため、一部でエラーが出ても全体は中断せず、
+  作成件数・スキップ件数・失敗件数がまとめて表示されます。
+
+### カスタム投稿タイプ(Custom Post Type)
+
+管理画面の「カスタム投稿タイプ」画面(`/post-types`)で、記事(Post)とは別に、「商品」
+「お客様の声」のような独自の構造を持つコンテンツタイプを定義できます。カスタムブロックと
+同様、ここで決めるのは名前とフィールド構成(`FieldDef[]`: キー・ラベル・型・必須)だけです。
+
+- 定義(`PostType`)ごとに、サイドバーへ専用の「エントリー管理」画面(`/entries/:slug`)が
+  自動的に追加されます。実データ(`PostTypeEntry`)はタイトル・slug・ステータス
+  (DRAFT/SCHEDULED/PUBLISHED)・フィールド値を持ち、Post/Pageと同じ予約公開の仕組みが使えます。
+- slugはPost/Pageと違い、グローバルではなく投稿タイプ内でのみ一意です(異なる投稿タイプで
+  同じslugを使えます)。
+- 投稿タイプの定義を削除すると、その投稿タイプに属するエントリーもすべて削除されます。
+- 公開データはAPI(`GET /post-types/:slug`、`GET /post-types/:slug/slug/:entrySlug`)で
+  取得できます。レスポンスにはフィールド構成(`postType.fields`)も一緒に含まれるため、
+  消費する側は事前にスキーマを知らなくても値を描画できます。
+
 ## REST API
 
 | Method | パス | 認証 | 説明 |
@@ -244,10 +317,16 @@ model BlockType {
 | POST | `/posts` | ✅ | 記事の作成 |
 | PATCH | `/posts/:id` | ✅ | 記事の更新 |
 | DELETE | `/posts/:id` | ✅ | 記事の削除 |
+| GET/POST/PATCH/DELETE | `/pages(/:id)` | 一部 | Postと同じパターン(カテゴリー・作成者なし) |
 | GET | `/categories` | - | カテゴリー一覧 |
 | POST/PATCH/DELETE | `/categories(/:id)` | ✅ | カテゴリーの作成/更新/削除 |
 | GET/POST/PATCH/DELETE | `/media(/:id)` | ✅ | ファイルのアップロード(`multipart/form-data`。alt/captionも同時送信可)/一覧/alt・captionの更新/削除 |
 | GET/POST/PATCH/DELETE | `/block-types(/:id)` | ✅ | カスタムブロックのフィールド構成の作成/更新/削除・一覧取得(管理画面専用) |
+| GET/POST/PATCH/DELETE | `/post-types(/:id)` | ✅ | カスタム投稿タイプの定義(フィールド構成)の作成/更新/削除・一覧取得 |
+| GET | `/post-types/:slug` | - | その投稿タイプの公開済みエントリー一覧(フィールド構成付き) |
+| GET | `/post-types/:slug/slug/:entrySlug` | - | エントリー詳細(公開済みのみ、それ以外は404) |
+| GET/POST/PATCH/DELETE | `/post-types/:slug(/:id)` | ✅ | エントリーの作成/更新/削除・全状態一覧取得(管理画面専用) |
+| POST | `/import/wordpress` | ✅ | WordPressエクスポート(WXR)の一括インポート(`multipart/form-data`) |
 | POST | `/auth/login` | - | `{ email, password }` → セッションクッキー(JWT, httpOnly)を発行 |
 | POST | `/auth/logout` | - | セッションクッキーを削除 |
 | GET | `/auth/me` | ✅ | 現在ログイン中のユーザーを確認 |
@@ -294,12 +373,18 @@ curl -b cookies.txt -X POST http://localhost:4000/posts \
 - **メディア**(`/media`): ファイルのアップロード、alt・キャプションの編集、URLのコピー、一覧、削除。
 - **カスタムブロック**(`/block-types`): ACFの「フィールドグループ」に相当するカスタムブロックの
   フィールド構成を作成/修正/削除。作成したブロックは記事編集画面のブロック一覧にすぐ追加されます。
+- **WordPressインポート**(`/import`): WXRファイルをアップロードし、記事・固定ページ・
+  カテゴリーを一括作成。結果(作成/スキップ/失敗件数)をその場で表示します。
+- **カスタム投稿タイプ**(`/post-types`): 独自コンテンツタイプの定義を作成/修正/削除。
+  定義ごとに「エントリー管理」(`/entries/:slug`)へのリンクがあり、そこから実データを
+  作成/修正/削除できます(タイトル・フィールド値・ステータス・slugを持つ、Postに似たフォーム)。
 
 ## V1の範囲
 
 `structure.md`に明記されている通り、今回のV1では**シンプルさと保守性**を優先します。
 
-- ✅ 含まれるもの: ログイン、Post、Media、Category、カスタムブロック(ACFスタイル)、API、Website
+- ✅ 含まれるもの: ログイン、Post、Page、Media、Category、カスタムブロック(ACFスタイル)、
+  カスタム投稿タイプ、予約公開、WordPressインポート、API、Website
 - ❌ 含まれないもの: Plugin、Theme、Multi-Site切り替えUI
 - 🔜 次の候補: [`SPEC.md`](./SPEC.md) の12章(今後検討する機能)を参照
 

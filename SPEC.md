@@ -58,6 +58,8 @@ Headless CMS(Content Management System)です。
 主な機能:
 
 - 記事作成・編集
+- 固定ページ管理(現時点では管理画面UIはなく、API経由での操作を想定)
+- カスタム投稿タイプの定義・エントリー管理(6.6参照)
 - カテゴリー管理
 - 画像管理
 - コンテンツ公開管理
@@ -111,19 +113,23 @@ CMS全体のデータ管理を担当するシステムです。
 |エンティティ|説明|
 |-|-|
 |Post|記事。タイトル・slug・本文(Block配列)・カテゴリー・公開状態を持つ|
+|Page|固定ページ。Postと同じBlock形式で本文を保持。カテゴリー・作成者の概念はない|
 |Category|カテゴリー。1つの記事が複数カテゴリーに属することが可能|
 |Media|アップロードされた画像ファイル。URL・Alt・キャプションを保持|
 |BlockType|カスタムブロックの設計図。名前・スラッグ・フィールドスキーマ(Json)を保持|
+|PostType|カスタム投稿タイプの設計図。名前・スラッグ・フィールドスキーマ(Json)を保持(6.6参照)|
+|PostTypeEntry|PostTypeの実データ。タイトル・slug(PostType内で一意)・フィールド値・公開状態を持つ|
 
 ## 4.2 公開状態
 
-記事は DRAFT / SCHEDULED / PUBLISHED の3状態を持つ。
-DRAFT・SCHEDULED は管理画面にのみ表示され、API・公開サイトには表れない。
+記事・固定ページ・カスタム投稿タイプのエントリー(PostTypeEntry)は DRAFT / SCHEDULED /
+PUBLISHED の3状態を持つ。DRAFT・SCHEDULED は管理画面にのみ表示され、API・公開サイトには表れない。
 
-SCHEDULEDの記事は`publishAt`(公開予定日時)を持ち、1分ごとのスケジューラ
-(`@nestjs/schedule`の`@Cron`)がその時刻を過ぎたSCHEDULED記事を自動的にPUBLISHEDへ
-切り替える。判定はDBに保存された`publishAt`を基準にするため、サーバー再起動をまたいでも
-予約は失われない。
+SCHEDULEDのコンテンツは`publishAt`(公開予定日時)を持ち、1分ごとのスケジューラ
+(`@nestjs/schedule`の`@Cron`。Post/Page/PostTypeEntryそれぞれに1つずつ、PostTypeEntryの
+スケジューラは投稿タイプを横断して動作する)がその時刻を過ぎたSCHEDULEDコンテンツを自動的に
+PUBLISHEDへ切り替える。判定はDBに保存された`publishAt`を基準にするため、サーバー再起動を
+またいでも予約は失われない。
 
 ---
 
@@ -189,6 +195,44 @@ WordPressのACF(Advanced Custom Fields)と同様、コード変更なしに管�
 必須フィールドが未入力の場合、保存時にエラーを表示し保存を中止する
 (該当ブロック名・フィールド名を明示)。
 
+## 6.6 カスタム投稿タイプ(Custom Post Type)
+
+### 6.6.1 目的
+
+記事(Post)とは別に、「商品」「お客様の声」のような、記事とは異なる構造を持つ独自のコンテンツ
+タイプを管理画面から定義できるようにする。カスタムブロック(6.1〜6.5)が記事「内」の部品を
+拡張する仕組みであるのに対し、これは記事そのものと並ぶ新しいコンテンツの種類を追加する、
+別概念の仕組みである。両者は独立して機能する。
+
+### 6.6.2 設計方針
+
+PostType(投稿タイプの「定義」)はBlockTypeと同じ形で、名前・スラッグ・フィールドスキーマ
+(FieldDef[])のみを保持する。実データはPostTypeEntry(定義ごとの「エントリー」)に保存され、
+タイトル・slug(PostType内で一意)・フィールド値(Record<string, FieldValue>)・公開状態
+(DRAFT/SCHEDULED/PUBLISHED)を持つ。本文はBlock[]ではなくフィールド値のみで構成される
+(構造化データが目的のため、リッチな本文エディタは持たない)。
+
+### 6.6.3 API
+
+|エンドポイント|認証|説明|
+|-|-|-|
+|GET/POST/PATCH/DELETE /post-types(/:id)|必要|投稿タイプの定義(フィールド構成)の管理|
+|GET /post-types/:typeSlug|不要|その投稿タイプの公開済みエントリー一覧(フィールド構成付き)|
+|GET /post-types/:typeSlug/slug/:slug|不要|エントリー詳細(公開済みのみ、それ以外は404)|
+|GET /post-types/:typeSlug/all|必要|全エントリー一覧(下書き含む、管理画面用)|
+|GET/POST/PATCH/DELETE /post-types/:typeSlug(/:id)|必要|エントリーの作成/更新/削除・1件取得|
+
+公開系レスポンスにはエントリー配列だけでなく`postType`(フィールド構成)も含める。フィールド
+構成は投稿タイプごとに動的なため、消費する側(公開サイト等)が事前にスキーマを知らなくても
+値を描画できるようにするための設計判断である。
+
+### 6.6.4 管理画面
+
+投稿タイプを定義すると、サイドバーへ専用の「エントリー管理」画面(`/entries/:slug`)への
+リンクが自動的に追加される。フィールドの入力フォームはカスタムブロックと同じ部品
+(フィールド型ごとの入力UI)を再利用する。投稿タイプの定義を削除すると、その投稿タイプに
+属するエントリーもすべて削除される。
+
 ---
 
 # 7. API仕様
@@ -210,13 +254,50 @@ WordPressのACF(Advanced Custom Fields)と同様、コード変更なしに管�
 |POST /posts|必要|記事作成|
 |PATCH /posts/:id|必要|記事更新|
 |DELETE /posts/:id|必要|記事削除|
+|GET /pages/slug/:slug|不要|固定ページ詳細(公開済みのみ)|
+|GET /pages/all|必要|全固定ページ一覧(下書き含む)|
+|POST/PATCH/DELETE /pages(/:id)|必要|固定ページの作成/更新/削除|
 |GET /categories|不要|カテゴリー一覧|
 |GET/POST/PATCH/DELETE /media|必要|メディア管理|
 |GET/POST/PATCH/DELETE /block-types|必要|カスタムブロック定義管理|
+|GET/POST/PATCH/DELETE /post-types|必要|カスタム投稿タイプの定義管理(6.6参照)|
+|GET /post-types/:typeSlug|不要|投稿タイプの公開済みエントリー一覧|
+|GET/POST/PATCH/DELETE /post-types/:typeSlug|一部|投稿タイプのエントリー管理(6.6参照)|
+|POST /import/wordpress|必要|WordPressエクスポート(WXR)の一括インポート(7.4参照)|
 
 ## 7.3 レスポンス形式
 
 JSON形式。一覧系は `{ "posts": [...] }` のように配列をラップして返す。
+
+## 7.4 WordPressインポート
+
+WordPressの標準エクスポート形式(WXR = WordPress eXtended RSS、`.xml`)を
+`multipart/form-data`で1ファイルアップロードすると、記事・固定ページ・カテゴリー・
+タグを一括で取り込む「オールインワン」インポート。
+
+**マッピング**:
+
+|WordPress|このCMS|
+|-|-|
+|投稿(post)|Post|
+|固定ページ(page)|Page|
+|カテゴリー|Category|
+|タグ|Category(タグとカテゴリーを区別せず合流させる)|
+|投稿本文(`content:encoded`)|Block配列(6章のHTML→Block変換ルールに従う)|
+
+**変換時の制約**:
+
+- 本文の生HTMLはそのまま保存せず、既存のBlock変換ロジック(段落/見出し/リスト/引用/
+  画像/画像ギャラリー)にマッピングする。太字・リンクなどのインライン装飾や、
+  マッピング不能な要素は8章の設計方針に従いプレーンテキストへ変換され、生HTMLとして
+  保存されることはない。
+- 画像は元のURLをそのまま`image`/`gallery`ブロックのurlとして保持する。ファイルの
+  ダウンロード・このCMSへの再アップロードは行わない。
+- `attachment`(添付ファイル)・`nav_menu_item`(メニュー)・カスタム投稿タイプ、および
+  `trash`/`auto-draft`ステータスの項目はインポート対象外としてスキップする。
+- WordPressの`future`(予約投稿)は、日時が未来であればSCHEDULED状態として取り込む。
+- 項目ごとに成功/失敗を分離して処理するため、一部の項目の変換に失敗しても
+  インポート全体は中断しない。結果は作成件数・スキップ件数・失敗件数として返す。
 
 ---
 
@@ -276,7 +357,9 @@ JSON形式。一覧系は `{ "posts": [...] }` のように配列をラップし
 
 ✅ 記事管理
 
-✅ 予約公開(SCHEDULED状態 + 1分ごとの自動公開スケジューラ)
+✅ 固定ページ管理(APIのみ)
+
+✅ 予約公開(SCHEDULED状態 + 1分ごとの自動公開スケジューラ、記事・固定ページ両対応)
 
 ✅ カテゴリー管理
 
@@ -286,9 +369,13 @@ JSON形式。一覧系は `{ "posts": [...] }` のように配列をラップし
 
 ✅ Custom Block
 
+✅ カスタム投稿タイプ(Custom Post Type)
+
 ✅ API提供
 
 ✅ 公開Webサイト連携
+
+✅ WordPressインポート(WXR一括取り込み)
 
 ---
 
@@ -298,6 +385,7 @@ JSON形式。一覧系は `{ "posts": [...] }` のように配列をラップし
 
 |項目|目的|
 |-|-|
+|固定ページの管理画面UI|現状APIのみの固定ページ操作をGUIで可能にする|
 |ユーザー権限管理|複数担当者で安全に利用|
 |承認Workflow|公開前チェック|
 |Version History|過去内容への復元|
