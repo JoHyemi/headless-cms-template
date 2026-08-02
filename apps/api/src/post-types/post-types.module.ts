@@ -9,5 +9,6 @@ import { PostTypeEntriesService } from "./post-type-entries.service";
   imports: [AuthModule],
   controllers: [PostTypesController, PostTypeEntriesController],
   providers: [PostTypesService, PostTypeEntriesService],
+  exports: [PostTypesService, PostTypeEntriesService],
 })
 export class PostTypesModule {}

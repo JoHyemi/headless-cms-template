@@ -7,11 +7,12 @@ import { XMLParser } from "fast-xml-parser";
 
 export type WxrCategory = { niceName: string; name: string };
 export type WxrTag = { slug: string; name: string };
+export type WxrMeta = { key: string; value: string };
 
 export type WxrItem = {
   title: string;
   slug: string; // wp:post_name
-  postType: string; // post | page | attachment | nav_menu_item など
+  postType: string; // post | page | attachment | nav_menu_item | カスタム投稿タイプのslugなど
   status: string; // publish | draft | pending | private | future | trash | inherit
   postDate: string; // wp:post_date(サイトのローカル時刻、タイムゾーン情報なし)
   contentHtml: string; // content:encoded — 投稿本文の生HTML
@@ -20,6 +21,7 @@ export type WxrItem = {
   categorySlugs: string[]; // domain="category"のcategory要素
   tagSlugs: string[]; // domain="post_tag"のcategory要素
   attachmentUrl?: string; // postType==="attachment"の場合のみ
+  meta: WxrMeta[]; // wp:postmeta(カスタムフィールド)。カスタム投稿タイプの取り込みで使用
 };
 
 export type WxrDocument = {
@@ -90,6 +92,10 @@ export function parseWxr(xml: string): WxrDocument {
       .map((c) => (c["@_nicename"] as string | undefined) ?? textOf(c))
       .filter(Boolean);
 
+    const meta: WxrMeta[] = asArray(item["wp:postmeta"] as Record<string, unknown>[] | undefined)
+      .map((m) => ({ key: textOf(m["wp:meta_key"]), value: textOf(m["wp:meta_value"]) }))
+      .filter((m) => m.key);
+
     return {
       title: textOf(item.title),
       slug: textOf(item["wp:post_name"]),
@@ -102,6 +108,7 @@ export function parseWxr(xml: string): WxrDocument {
       categorySlugs,
       tagSlugs,
       attachmentUrl: textOf(item["wp:attachment_url"]) || undefined,
+      meta,
     };
   });
 
