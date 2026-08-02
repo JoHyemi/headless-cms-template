@@ -11,6 +11,7 @@ const WEBSITE_URL = process.env.NEXT_PUBLIC_WEBSITE_URL ?? "http://localhost:300
 const menuItems = [
   { href: "/posts", label: "記事管理", icon: "📄" },
   { href: "/posts/new", label: "新規投稿", icon: "➕" },
+  { href: "/pages", label: "固定ページ管理", icon: "📃" },
   { href: "/categories", label: "カテゴリー管理", icon: "🗂️" },
   { href: "/media", label: "メディア", icon: "🖼️" },
   { href: "/block-types", label: "カスタムブロック", icon: "🧩" },
@@ -42,11 +43,13 @@ export function AdminSidebar({ postTypes = [] }: Props) {
           const isActive =
             item.href === "/posts"
               ? pathname === "/posts" || /^\/posts\/[^/]+\/edit/.test(pathname)
-              : item.href === "/block-types"
-                ? pathname === "/block-types" || pathname.startsWith("/block-types/")
-                : item.href === "/post-types"
-                  ? pathname === "/post-types" || pathname.startsWith("/post-types/")
-                  : pathname === item.href;
+              : item.href === "/pages"
+                ? pathname === "/pages" || pathname.startsWith("/pages/")
+                : item.href === "/block-types"
+                  ? pathname === "/block-types" || pathname.startsWith("/block-types/")
+                  : item.href === "/post-types"
+                    ? pathname === "/post-types" || pathname.startsWith("/post-types/")
+                    : pathname === item.href;
 
           return (
             <Link

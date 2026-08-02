@@ -42,6 +42,18 @@ export type PostDTO = {
   categories: CategoryDTO[];
 };
 
+export type PageDTO = {
+  id: string;
+  title: string;
+  slug: string;
+  content: Block[];
+  contentHtml: string;
+  status: "DRAFT" | "SCHEDULED" | "PUBLISHED";
+  publishAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type PostTypeDTO = {
   id: string;
   name: string;
