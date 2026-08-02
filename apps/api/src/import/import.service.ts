@@ -1,13 +1,14 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { parse as parseHtml } from "node-html-parser";
 import { ContentStatus } from "@prisma/client";
-import type { FieldDef } from "@cms/blocks";
+import type { Block, FieldDef } from "@cms/blocks";
 import { PrismaService } from "../prisma/prisma.service";
 import { PostsService } from "../posts/posts.service";
 import { PagesService } from "../pages/pages.service";
 import { CategoriesService } from "../categories/categories.service";
 import { PostTypesService } from "../post-types/post-types.service";
 import { PostTypeEntriesService } from "../post-types/post-type-entries.service";
+import { BlockTypesService } from "../block-types/block-types.service";
 import { slugify } from "../common/slugify";
 import { parseWxr, type WxrItem, type WxrMeta } from "./wxr-parser";
 import { wpContentToBlocks } from "./wp-content-to-blocks";
@@ -18,6 +19,7 @@ export type ImportResult = {
   categoriesCreated: number;
   postTypesCreated: number;
   postTypeEntriesCreated: number;
+  blockTypesCreated: number;
   skipped: { title: string; reason: string }[];
   failed: { title: string; reason: string }[];
 };
@@ -75,7 +77,8 @@ export class ImportService {
     private readonly pagesService: PagesService,
     private readonly categoriesService: CategoriesService,
     private readonly postTypesService: PostTypesService,
-    private readonly postTypeEntriesService: PostTypeEntriesService
+    private readonly postTypeEntriesService: PostTypeEntriesService,
+    private readonly blockTypesService: BlockTypesService
   ) {}
 
   async importWordpress(xml: string): Promise<ImportResult> {
@@ -87,6 +90,7 @@ export class ImportService {
       categoriesCreated: 0,
       postTypesCreated: 0,
       postTypeEntriesCreated: 0,
+      blockTypesCreated: 0,
       skipped: [],
       failed: [],
     };
@@ -97,9 +101,12 @@ export class ImportService {
     // このCMSのcreatedAt(作成時の自動採番)による一覧の並び順もWordPress時代の時系列に近くなる。
     const items = [...doc.items].sort((a, b) => a.postDate.localeCompare(b.postDate));
 
-    // post/page以外の投稿タイプ(WordPressのカスタム投稿タイプ)は、このCMSのカスタム投稿タイプ
-    // (PostType/PostTypeEntry)へ後段でまとめて取り込む — 投稿タイプごとにフィールド構成を
-    // 決めてから定義を作る必要があるため、先に投稿タイプ単位でグルーピングしておく。
+    // post/pageはカスタムフィールド(wp:postmeta)をカスタムブロックとして本文に追加する前提で
+    // 別配列にまとめ、post/page以外(WordPressのカスタム投稿タイプ)はこのCMSのカスタム投稿
+    // タイプ(PostType/PostTypeEntry)へ後段でまとめて取り込む。どちらもフィールド構成を項目
+    // グループ単位で決めてから定義を作る必要があるため、先にグルーピングしておく。
+    const postItems: WxrItem[] = [];
+    const pageItems: WxrItem[] = [];
     const customItemsByType = new Map<string, WxrItem[]>();
 
     for (const item of items) {
@@ -110,8 +117,12 @@ export class ImportService {
         continue;
       }
 
-      if (item.postType === "post" || item.postType === "page") {
-        await this.importPostOrPage(item, title, slugToCategoryId, result);
+      if (item.postType === "post") {
+        postItems.push(item);
+        continue;
+      }
+      if (item.postType === "page") {
+        pageItems.push(item);
         continue;
       }
 
@@ -125,57 +136,144 @@ export class ImportService {
       else customItemsByType.set(item.postType, [item]);
     }
 
+    // ACFなどのプラグインが記事/固定ページに追加したカスタムフィールド(wp:postmeta)は、この
+    // CMSのPost/Pageモデルには入る場所がないため、既存のカスタムブロック機能(ACFスタイルの
+    // フィールドスキーマ + プリセットレンダラー)を使って本文の末尾にカスタムブロックとして
+    // 追加する。post用・page用で別のブロックタイプにする(記事と固定ページでは実際に付与
+    // されているカスタムフィールドの種類が異なることが多いため)。
+    const postFieldsBlockType = await this.ensureWpFieldsBlockType(
+      postItems,
+      "wp-post-fields",
+      "WordPress記事フィールド",
+      result
+    );
+    const pageFieldsBlockType = await this.ensureWpFieldsBlockType(
+      pageItems,
+      "wp-page-fields",
+      "WordPress固定ページフィールド",
+      result
+    );
+
+    for (const item of postItems) {
+      await this.importPost(item, slugToCategoryId, postFieldsBlockType, result);
+    }
+    for (const item of pageItems) {
+      await this.importPage(item, pageFieldsBlockType, result);
+    }
+
     await this.importCustomPostTypes(customItemsByType, result);
 
     return result;
   }
 
-  /** post/page(Post/Pageに直接対応する投稿タイプ)を1件取り込む。 */
-  private async importPostOrPage(
+  /** 記事(post)を1件取り込む。 */
+  private async importPost(
     item: WxrItem,
-    title: string,
     slugToCategoryId: Map<string, string>,
+    fieldsBlockType: { slug: string } | null,
     result: ImportResult
   ): Promise<void> {
+    const title = item.title || "(無題)";
     const blocks = wpContentToBlocks(item.contentHtml);
     if (blocks.length === 0) {
       result.skipped.push({ title, reason: "本文が空のためスキップ" });
       return;
     }
+    this.appendWpFieldsBlock(blocks, item, fieldsBlockType);
 
     const { status, publishAt } = this.mapStatus(item.status, item.postDate);
     const excerpt = this.plainText(item.excerptHtml) || undefined;
+    const categoryIds = [...item.categorySlugs, ...item.tagSlugs]
+      .map((slug) => slugToCategoryId.get(slug))
+      .filter((id): id is string => Boolean(id));
 
     try {
-      if (item.postType === "post") {
-        const categoryIds = [...item.categorySlugs, ...item.tagSlugs]
-          .map((slug) => slugToCategoryId.get(slug))
-          .filter((id): id is string => Boolean(id));
-
-        await this.postsService.create({
-          title,
-          content: blocks,
-          excerpt,
-          status,
-          publishAt,
-          author: item.author,
-          slug: item.slug || undefined,
-          categoryIds,
-        });
-        result.postsCreated += 1;
-      } else {
-        await this.pagesService.create({
-          title,
-          content: blocks,
-          status,
-          publishAt,
-          slug: item.slug || undefined,
-        });
-        result.pagesCreated += 1;
-      }
+      await this.postsService.create({
+        title,
+        content: blocks,
+        excerpt,
+        status,
+        publishAt,
+        author: item.author,
+        slug: item.slug || undefined,
+        categoryIds,
+      });
+      result.postsCreated += 1;
     } catch (error) {
       result.failed.push({ title, reason: error instanceof Error ? error.message : "不明なエラー" });
     }
+  }
+
+  /** 固定ページ(page)を1件取り込む。 */
+  private async importPage(
+    item: WxrItem,
+    fieldsBlockType: { slug: string } | null,
+    result: ImportResult
+  ): Promise<void> {
+    const title = item.title || "(無題)";
+    const blocks = wpContentToBlocks(item.contentHtml);
+    if (blocks.length === 0) {
+      result.skipped.push({ title, reason: "本文が空のためスキップ" });
+      return;
+    }
+    this.appendWpFieldsBlock(blocks, item, fieldsBlockType);
+
+    const { status, publishAt } = this.mapStatus(item.status, item.postDate);
+
+    try {
+      await this.pagesService.create({
+        title,
+        content: blocks,
+        status,
+        publishAt,
+        slug: item.slug || undefined,
+      });
+      result.pagesCreated += 1;
+    } catch (error) {
+      result.failed.push({ title, reason: error instanceof Error ? error.message : "不明なエラー" });
+    }
+  }
+
+  /** その投稿タイプ(post/page別)にACFなどで付与されたカスタムフィールドを表現するための
+   *  カスタムブロックタイプを用意する。1件もカスタムフィールドを持つ項目がなければ何もしない
+   *  (このCMSに本来存在しない空のブロックタイプを作らないため)。既に同じslugの定義があれば
+   *  そのまま再利用する。 */
+  private async ensureWpFieldsBlockType(
+    items: WxrItem[],
+    slug: string,
+    name: string,
+    result: ImportResult
+  ): Promise<{ slug: string } | null> {
+    if (!items.some((item) => cleanMeta(item.meta).length > 0)) return null;
+
+    const existing = await this.prisma.blockType.findUnique({ where: { slug } });
+    if (existing) return existing;
+
+    try {
+      const created = await this.blockTypesService.create({
+        name,
+        slug,
+        fields: this.buildMetaFieldSchema(items),
+      });
+      result.blockTypesCreated += 1;
+      return created;
+    } catch {
+      // 作成に失敗しても記事自体のインポートは継続する(カスタムフィールドの取り込みだけ諦める)。
+      return null;
+    }
+  }
+
+  /** ensureWpFieldsBlockType()で用意したブロックタイプのカスタムブロックを、この項目の
+   *  カスタムフィールド値で本文の末尾に追加する(該当フィールドが1つもなければ何もしない)。 */
+  private appendWpFieldsBlock(
+    blocks: Block[],
+    item: WxrItem,
+    fieldsBlockType: { slug: string } | null
+  ): void {
+    if (!fieldsBlockType) return;
+    const fields = this.buildMetaValues(item);
+    if (Object.keys(fields).length === 0) return;
+    blocks.push({ type: "custom", blockType: fieldsBlockType.slug, fields });
   }
 
   /** post/page以外の投稿タイプを、投稿タイプ(wp:post_type)ごとにこのCMSのカスタム投稿タイプ
@@ -252,12 +350,10 @@ export class ImportService {
       seenKeys.add("excerpt");
     }
 
-    for (const item of items) {
-      for (const { key } of cleanMeta(item.meta)) {
-        if (seenKeys.has(key)) continue;
-        seenKeys.add(key);
-        fields.push({ key, label: key, type: "text" });
-      }
+    for (const field of this.buildMetaFieldSchema(items)) {
+      if (seenKeys.has(field.key)) continue;
+      seenKeys.add(field.key);
+      fields.push(field);
     }
 
     return fields;
@@ -270,10 +366,31 @@ export class ImportService {
     const excerpt = this.plainText(item.excerptHtml);
     if (excerpt) values.excerpt = excerpt;
 
+    return { ...values, ...this.buildMetaValues(item) };
+  }
+
+  /** 項目グループの`wp:postmeta`(フィルタ済み)から見つかったキーを出現順にFieldDef化する。 */
+  private buildMetaFieldSchema(items: WxrItem[]): FieldDef[] {
+    const fields: FieldDef[] = [];
+    const seenKeys = new Set<string>();
+
+    for (const item of items) {
+      for (const { key } of cleanMeta(item.meta)) {
+        if (seenKeys.has(key)) continue;
+        seenKeys.add(key);
+        fields.push({ key, label: key, type: "text" });
+      }
+    }
+
+    return fields;
+  }
+
+  /** 1項目分の`wp:postmeta`(フィルタ済み)をkey:valueとして取り出す。 */
+  private buildMetaValues(item: WxrItem): Record<string, string> {
+    const values: Record<string, string> = {};
     for (const { key, value } of cleanMeta(item.meta)) {
       values[key] = value;
     }
-
     return values;
   }
 

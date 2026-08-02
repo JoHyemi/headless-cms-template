@@ -9,6 +9,7 @@ type ImportResult = {
   categoriesCreated: number;
   postTypesCreated: number;
   postTypeEntriesCreated: number;
+  blockTypesCreated: number;
   skipped: { title: string; reason: string }[];
   failed: { title: string; reason: string }[];
 };
@@ -67,9 +68,11 @@ export function WordPressImportForm() {
         <p className="hint" style={{ marginBottom: "1rem" }}>
           注意: 本文中の太字・リンクなどの装飾はプレーンテキストに変換されます(このCMSは安全のため
           自由なHTMLを保存しない設計のためです)。画像は元のURLのまま参照され、このCMSへは
-          再アップロードされません。post/page以外の投稿タイプは、投稿タイプごとに「カスタム投稿
-          タイプ」として自動的に定義され(本文・抜粋・カスタムフィールドをテキストとして取り込み)、
-          添付ファイル・メニュー・WordPress内部用の投稿タイプは取り込まれません。
+          再アップロードされません。記事・固定ページに付いているカスタムフィールド(ACF等)は
+          「カスタムブロック」として本文の末尾に自動的に追加されます。post/page以外の投稿タイプは、
+          投稿タイプごとに「カスタム投稿タイプ」として自動的に定義され(本文・抜粋・カスタム
+          フィールドをテキストとして取り込み)、添付ファイル・メニュー・WordPress内部用の
+          投稿タイプは取り込まれません。
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -105,6 +108,9 @@ export function WordPressImportForm() {
             </span>
             <span className="badge badge-published">
               カスタム投稿タイプのエントリー {result.postTypeEntriesCreated}件
+            </span>
+            <span className="badge badge-category">
+              カスタムブロック定義 {result.blockTypesCreated}件
             </span>
           </div>
 
