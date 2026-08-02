@@ -1,6 +1,7 @@
 import { serverApiFetch } from "@/lib/api-server";
 import { CategoryForm } from "@/components/CategoryForm";
 import { CategoryActions } from "@/components/CategoryActions";
+import { CategorySlugForm } from "@/components/CategorySlugForm";
 import type { CategoryDTO } from "@/types/api";
 
 // 管理者カテゴリー管理画面: WordPressの「カテゴリー」メニューと同じ役割です。
@@ -21,15 +22,16 @@ export default async function AdminCategoriesPage() {
       ) : (
         categories.map((category) => (
           <div key={category.id} className="card">
-            <div className="page-title-row" style={{ marginBottom: 0 }}>
+            <div className="page-title-row" style={{ marginBottom: "0.5rem" }}>
               <div>
                 <strong>{category.name}</strong>
-                <p className="muted">
-                  /{category.slug} · 記事{category._count?.posts ?? 0}件
+                <p className="muted" style={{ marginBottom: 0 }}>
+                  記事{category._count?.posts ?? 0}件
                 </p>
               </div>
               <CategoryActions id={category.id} postCount={category._count?.posts ?? 0} />
             </div>
+            <CategorySlugForm id={category.id} initialSlug={category.slug} />
           </div>
         ))
       )}
