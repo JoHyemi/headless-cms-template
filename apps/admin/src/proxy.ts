@@ -19,5 +19,9 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next|favicon.ico|icon.svg).*)"],
+  // /api-proxyはAPIへのリバースプロキシ(next.config.tsのrewrites、deploy/local-demo.sh専用)。
+  // ページ遷移ではないため、ここでのクッキー有無チェックの対象外にする — 対象に含めると、
+  // ログイン前にPOSTするログインリクエスト自身までここで/loginへリダイレクトされてしまい、
+  // ログインが不可能になる。実際の認可はapps/apiのJwtAuthGuardが個々のエンドポイントで行う。
+  matcher: ["/((?!_next|favicon.ico|icon.svg|api-proxy).*)"],
 };

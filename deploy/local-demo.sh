@@ -122,9 +122,16 @@ log "api公開URL: $API_URL_PUBLIC"
 #    優先して適用され、ブラウザバンドルにこの値が埋め込まれます。
 # ---------------------------------------------------------------------------
 log "admin/websiteの環境変数を作成"
+# adminはNEXT_PUBLIC_API_URLに自分自身の相対パス(/api-proxy)を使う — apiの別ドメインを
+# 直接ブラウザから叩かせると、ログインで発行されるセッションクッキーがapiのドメインにしか
+# 乗らず、admin自身のサーバー側認証チェック(proxy.ts)から見えなくなるため。
+# API_PROXY_TARGETはnext.config.tsのrewrites()が読み、admin自身のサーバーがapiへ
+# リバースプロキシする(ブラウザは常にadminの自ドメインだけを見る)。
+# websiteはログイン不要な公開読み取り専用なので、そのままapiトンネルを直接呼び出す。
 cat > apps/admin/.env.production.local <<EOF
 API_URL=http://localhost:4000
-NEXT_PUBLIC_API_URL=$API_URL_PUBLIC
+API_PROXY_TARGET=http://localhost:4000
+NEXT_PUBLIC_API_URL=/api-proxy
 EOF
 cat > apps/website/.env.production.local <<EOF
 NEXT_PUBLIC_API_URL=$API_URL_PUBLIC
