@@ -58,7 +58,7 @@ Headless CMS(Content Management System)です。
 主な機能:
 
 - 記事作成・編集
-- 固定ページ管理(現時点では管理画面UIはなく、API経由での操作を想定)
+- 固定ページ管理
 - カスタム投稿タイプの定義・エントリー管理(6.6参照)
 - カテゴリー管理
 - 画像管理
@@ -357,7 +357,7 @@ WordPressの標準エクスポート形式(WXR = WordPress eXtended RSS、`.xml`
 
 ✅ 記事管理
 
-✅ 固定ページ管理(APIのみ)
+✅ 固定ページ管理
 
 ✅ 予約公開(SCHEDULED状態 + 1分ごとの自動公開スケジューラ、記事・固定ページ両対応)
 
@@ -385,7 +385,6 @@ WordPressの標準エクスポート形式(WXR = WordPress eXtended RSS、`.xml`
 
 |項目|目的|
 |-|-|
-|固定ページの管理画面UI|現状APIのみの固定ページ操作をGUIで可能にする|
 |ユーザー権限管理|複数担当者で安全に利用|
 |承認Workflow|公開前チェック|
 |Version History|過去内容への復元|
