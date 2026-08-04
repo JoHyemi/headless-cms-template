@@ -74,4 +74,5 @@ export type PostTypeEntryDTO = {
   publishAt: string | null;
   createdAt: string;
   updatedAt: string;
+  categories: CategoryDTO[];
 };

@@ -8,11 +8,13 @@ import { slugify } from "../common/slugify";
 import { CreatePostTypeEntryDto } from "./dto/create-post-type-entry.dto";
 import { UpdatePostTypeEntryDto } from "./dto/update-post-type-entry.dto";
 
+const includeCategories = { categories: true } as const;
+
 // PostType(投稿タイプの定義)ごとの実データ(エントリー)を管理するサービス。PostsServiceと
-// ほぼ同じ形(DRAFT/SCHEDULED/PUBLISHED + 予約公開)だが、本文がBlock[]ではなくPostType.fieldsで
-// 定義されたフィールド値(fieldValues)である点、slugが投稿タイプ内でのみ一意である点が異なる。
-// フィールドスキーマ(postType.fields)は呼び出し側(公開サイト・管理画面)がfieldValuesを描画する
-// のに必要なため、レスポンスには常にpostTypeを添えて返す。
+// ほぼ同じ形(DRAFT/SCHEDULED/PUBLISHED + 予約公開 + カテゴリー)だが、本文がBlock[]ではなく
+// PostType.fieldsで定義されたフィールド値(fieldValues)である点、slugが投稿タイプ内でのみ
+// 一意である点が異なる。フィールドスキーマ(postType.fields)は呼び出し側(公開サイト・
+// 管理画面)がfieldValuesを描画するのに必要なため、レスポンスには常にpostTypeを添えて返す。
 @Injectable()
 export class PostTypeEntriesService {
   constructor(
@@ -31,6 +33,7 @@ export class PostTypeEntriesService {
     const entries = await this.prisma.postTypeEntry.findMany({
       where: { postTypeId: postType.id, status: ContentStatus.PUBLISHED },
       orderBy: { createdAt: "desc" },
+      include: includeCategories,
     });
     return { postType, entries };
   }
@@ -40,6 +43,7 @@ export class PostTypeEntriesService {
     const entries = await this.prisma.postTypeEntry.findMany({
       where: { postTypeId: postType.id },
       orderBy: { createdAt: "desc" },
+      include: includeCategories,
     });
     return { postType, entries };
   }
@@ -48,6 +52,7 @@ export class PostTypeEntriesService {
     const postType = await this.findPostTypeBySlug(typeSlug);
     const entry = await this.prisma.postTypeEntry.findUnique({
       where: { postTypeId_slug: { postTypeId: postType.id, slug } },
+      include: includeCategories,
     });
     if (!entry || entry.status !== ContentStatus.PUBLISHED) {
       throw new NotFoundException("エントリーが見つかりません。");
@@ -57,7 +62,10 @@ export class PostTypeEntriesService {
 
   async findOne(typeSlug: string, id: string) {
     const postType = await this.findPostTypeBySlug(typeSlug);
-    const entry = await this.prisma.postTypeEntry.findUnique({ where: { id } });
+    const entry = await this.prisma.postTypeEntry.findUnique({
+      where: { id },
+      include: includeCategories,
+    });
     if (!entry || entry.postTypeId !== postType.id) {
       throw new NotFoundException("エントリーが見つかりません。");
     }
@@ -86,11 +94,18 @@ export class PostTypeEntriesService {
           publishAt: dto.publishAt ? new Date(dto.publishAt) : undefined,
           postTypeId: postType.id,
           siteId: await this.site.getSiteId(),
+          categories: dto.categoryIds
+            ? { connect: dto.categoryIds.map((id) => ({ id })) }
+            : undefined,
         },
+        include: includeCategories,
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        throw new ConflictException("既に存在するslugです。");
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2002") throw new ConflictException("既に存在するslugです。");
+        if (error.code === "P2025") {
+          throw new BadRequestException("存在しないカテゴリーが含まれています。");
+        }
       }
       throw error;
     }
@@ -117,12 +132,22 @@ export class PostTypeEntriesService {
       if (!newSlug) throw new BadRequestException("無効なslugです。");
       data.slug = newSlug;
     }
+    if (dto.categoryIds !== undefined) {
+      data.categories = { set: dto.categoryIds.map((id) => ({ id })) };
+    }
 
     try {
-      return await this.prisma.postTypeEntry.update({ where: { id }, data });
+      return await this.prisma.postTypeEntry.update({
+        where: { id },
+        data,
+        include: includeCategories,
+      });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        throw new ConflictException("既に存在するslugです。");
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2025") {
+          throw new NotFoundException("エントリーまたはカテゴリーが見つかりません。");
+        }
+        if (error.code === "P2002") throw new ConflictException("既に存在するslugです。");
       }
       throw error;
     }

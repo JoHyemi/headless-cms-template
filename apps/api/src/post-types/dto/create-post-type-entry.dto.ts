@@ -1,5 +1,13 @@
 import { ContentStatus } from "@prisma/client";
-import { IsDateString, IsEnum, IsObject, IsOptional, IsString, MinLength } from "class-validator";
+import {
+  IsArray,
+  IsDateString,
+  IsEnum,
+  IsObject,
+  IsOptional,
+  IsString,
+  MinLength,
+} from "class-validator";
 
 export class CreatePostTypeEntryDto {
   @IsString()
@@ -24,4 +32,8 @@ export class CreatePostTypeEntryDto {
   @IsOptional()
   @IsDateString()
   publishAt?: string;
+
+  @IsOptional()
+  @IsArray()
+  categoryIds?: string[];
 }

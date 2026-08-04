@@ -59,9 +59,6 @@ export class PostsService {
       throw new BadRequestException("contentはブロック配列である必要があります。");
     }
     const blocks = normalizeBlocks(dto.content);
-    if (blocks.length === 0) {
-      throw new BadRequestException("本文の内容を入力する必要があります。");
-    }
 
     const baseSlug = slugify(dto.slug?.trim() ? dto.slug : dto.title);
     if (!baseSlug) {
@@ -111,9 +108,6 @@ export class PostsService {
         throw new BadRequestException("contentはブロック配列である必要があります。");
       }
       const blocks = normalizeBlocks(dto.content);
-      if (blocks.length === 0) {
-        throw new BadRequestException("本文の内容を入力する必要があります。");
-      }
       data.content = blocks as unknown as Prisma.InputJsonValue;
     }
 

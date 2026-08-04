@@ -63,13 +63,14 @@ model Post {
 
 // WordPressのカテゴリーのように、1つの記事が複数のカテゴリーに属することができます(多対多)。
 model Category {
-  id        String   @id @default(cuid())
-  site      Site     @relation(fields: [siteId], references: [id])
-  siteId    String
-  name      String
-  slug      String   @unique
-  createdAt DateTime @default(now())
-  posts     Post[]
+  id              String          @id @default(cuid())
+  site            Site            @relation(fields: [siteId], references: [id])
+  siteId          String
+  name            String
+  slug            String          @unique
+  createdAt       DateTime        @default(now())
+  posts           Post[]
+  postTypeEntries PostTypeEntry[]
 
   @@index([siteId])
 }
@@ -159,6 +160,7 @@ model PostTypeEntry {
   publishAt   DateTime? // SCHEDULED時の公開予定日時。他のステータスでは未使用
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+  categories  Category[] // Postと同様、1つのエントリーが複数カテゴリーに属することができる
 
   @@unique([postTypeId, slug])
   @@index([postTypeId, status, createdAt])

@@ -1,11 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, SyntheticEvent, useState } from "react";
 import { defaultFieldValue, type FieldValue } from "@cms/blocks";
 import { CustomFieldInput } from "@/components/CustomFieldInput";
 import { apiFetch } from "@/lib/api-client";
-import type { PostTypeDTO, PostTypeEntryDTO } from "@/types/api";
+import type { CategoryDTO, PostTypeDTO, PostTypeEntryDTO } from "@/types/api";
 
 // <input type="datetime-local">は"YYYY-MM-DDTHH:mm"をローカル時刻として扱うため、
 // DBのISO文字列(UTC)をローカルのgetter(getHours等)で変換する(PostFormと同じ実装)。
@@ -20,12 +20,14 @@ type Props = {
   mode: "create" | "edit";
   postType: PostTypeDTO;
   entry?: PostTypeEntryDTO;
+  allCategories: CategoryDTO[];
 };
 
 // カスタム投稿タイプのエントリー作成/修正共用フォーム。本文はBlockEditorではなく、
 // postType.fields(FieldDef[])で定義されたフィールドをCustomFieldInputで1つずつ編集する
-// (カスタムブロックのフィールド編集UIと同じ部品を再利用している)。
-export function PostTypeEntryForm({ mode, postType, entry }: Props) {
+// (カスタムブロックのフィールド編集UIと同じ部品を再利用している)。カテゴリー選択は
+// PostFormと同じ部品(その場での新規作成含む)。
+export function PostTypeEntryForm({ mode, postType, entry, allCategories }: Props) {
   const router = useRouter();
   const [title, setTitle] = useState(entry?.title ?? "");
   const [slug, setSlug] = useState(entry?.slug ?? "");
@@ -40,11 +42,50 @@ export function PostTypeEntryForm({ mode, postType, entry }: Props) {
     }
     return initial;
   });
+  const [categoryIds, setCategoryIds] = useState<string[]>(
+    entry?.categories.map((c) => c.id) ?? []
+  );
+  const [categories, setCategories] = useState<CategoryDTO[]>(allCategories);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function updateFieldValue(key: string, value: FieldValue) {
     setFieldValues((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function toggleCategory(id: string) {
+    setCategoryIds((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
+  }
+
+  async function handleCreateCategory(e: SyntheticEvent) {
+    e.preventDefault();
+    if (!newCategoryName.trim()) return;
+    setCategoryError(null);
+    setCreatingCategory(true);
+
+    try {
+      const res = await apiFetch("/categories", {
+        method: "POST",
+        body: JSON.stringify({ name: newCategoryName }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCategoryError(data.error ?? "カテゴリーの作成に失敗しました。");
+        return;
+      }
+
+      const created: CategoryDTO = data;
+      setCategories((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
+      setCategoryIds((prev) => [...prev, created.id]);
+      setNewCategoryName("");
+    } catch {
+      setCategoryError("ネットワークエラーによりカテゴリーの作成に失敗しました。");
+    } finally {
+      setCreatingCategory(false);
+    }
   }
 
   async function handleSubmit(e: FormEvent, publish?: boolean) {
@@ -92,6 +133,7 @@ export function PostTypeEntryForm({ mode, postType, entry }: Props) {
           ...(finalStatus === "SCHEDULED"
             ? { publishAt: new Date(publishAt).toISOString() }
             : {}),
+          categoryIds,
           ...(mode === "edit" ? { slug } : {}),
         }),
       });
@@ -206,6 +248,55 @@ export function PostTypeEntryForm({ mode, postType, entry }: Props) {
                   保存してすぐ公開
                 </button>
               )}
+            </div>
+          </div>
+
+          <div className="card">
+            <h2 className="sidebar-card-title">カテゴリー</h2>
+            {categories.length === 0 ? (
+              <span className="hint">まだカテゴリーがありません。下から新しく追加してみてください。</span>
+            ) : (
+              <div className="actions-row">
+                {categories.map((category) => (
+                  <label
+                    key={category.id}
+                    className="btn"
+                    style={{
+                      cursor: "pointer",
+                      background: categoryIds.includes(category.id) ? "var(--accent)" : undefined,
+                      borderColor: categoryIds.includes(category.id) ? "var(--accent)" : undefined,
+                      color: categoryIds.includes(category.id) ? "var(--accent-foreground)" : undefined,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={categoryIds.includes(category.id)}
+                      onChange={() => toggleCategory(category.id)}
+                      style={{ display: "none" }}
+                    />
+                    {category.name}
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {categoryError && <p className="error-text">{categoryError}</p>}
+            <div className="actions-row" style={{ marginTop: "0.5rem" }}>
+              <input
+                type="text"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="新しいカテゴリー名"
+                style={{ flex: 1, minWidth: "120px" }}
+              />
+              <button
+                type="button"
+                className="btn"
+                disabled={creatingCategory || !newCategoryName.trim()}
+                onClick={handleCreateCategory}
+              >
+                {creatingCategory ? "追加中…" : "カテゴリー追加"}
+              </button>
             </div>
           </div>
         </aside>

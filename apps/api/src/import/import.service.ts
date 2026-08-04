@@ -24,8 +24,9 @@ export type ImportResult = {
   failed: { title: string; reason: string }[];
 };
 
-// WordPress本体が内部管理用に使う投稿タイプ。ユーザーが書いたコンテンツではないため、
-// カスタム投稿タイプとしての取り込み対象からも除外する。
+// WordPress本体、および代表的なプラグイン(ACF、MW WP Form、LazyBlocks)が内部管理用に
+// 使う投稿タイプ。ユーザーが書いたコンテンツではなく、プラグイン自身の設定・定義データが
+// 入っているだけなので、カスタム投稿タイプとしての取り込み対象からも除外する。
 const EXCLUDED_POST_TYPES = new Set([
   "attachment",
   "nav_menu_item",
@@ -40,6 +41,17 @@ const EXCLUDED_POST_TYPES = new Set([
   "wp_template_part",
   "wp_font_family",
   "wp_font_face",
+  // Advanced Custom Fields: フィールドグループ/フィールド/投稿タイプ・タクソノミー定義のUI自体
+  "acf-field-group",
+  "acf-field",
+  "acf-post-type",
+  "acf-taxonomy",
+  "acf-ui-options-page",
+  // MW WP Form: フォーム定義
+  "mw-wp-form",
+  // LazyBlocks: カスタムGutenbergブロックの定義・カテゴリー定義
+  "lazyblocks",
+  "lazyblocks-category",
 ]);
 // trash(ゴミ箱)・auto-draft(未保存の自動下書き)は意図的に作られたコンテンツではないため除外。
 const SKIPPED_STATUSES = new Set(["trash", "auto-draft"]);
@@ -161,7 +173,7 @@ export class ImportService {
       await this.importPage(item, pageFieldsBlockType, result);
     }
 
-    await this.importCustomPostTypes(customItemsByType, result);
+    await this.importCustomPostTypes(customItemsByType, slugToCategoryId, result);
 
     return result;
   }
@@ -175,10 +187,6 @@ export class ImportService {
   ): Promise<void> {
     const title = item.title || "(無題)";
     const blocks = wpContentToBlocks(item.contentHtml);
-    if (blocks.length === 0) {
-      result.skipped.push({ title, reason: "本文が空のためスキップ" });
-      return;
-    }
     this.appendWpFieldsBlock(blocks, item, fieldsBlockType);
 
     const { status, publishAt } = this.mapStatus(item.status, item.postDate);
@@ -212,10 +220,6 @@ export class ImportService {
   ): Promise<void> {
     const title = item.title || "(無題)";
     const blocks = wpContentToBlocks(item.contentHtml);
-    if (blocks.length === 0) {
-      result.skipped.push({ title, reason: "本文が空のためスキップ" });
-      return;
-    }
     this.appendWpFieldsBlock(blocks, item, fieldsBlockType);
 
     const { status, publishAt } = this.mapStatus(item.status, item.postDate);
@@ -280,9 +284,11 @@ export class ImportService {
    *  (PostType)として定義し、各項目をエントリー(PostTypeEntry)として作成する。
    *  本文(content:encoded)・抜粋・カスタムフィールド(wp:postmeta)は、このCMSのブロック形式
    *  ではなくPostTypeEntry.fieldValuesが期待するプレーンな文字列として保存する
-   *  (生HTMLを保存しない設計方針に合わせ、HTMLタグはplainText()で除去する)。 */
+   *  (生HTMLを保存しない設計方針に合わせ、HTMLタグはplainText()で除去する)。カテゴリー・
+   *  タグはPostと同様、ensureCategories()で用意したslug→idマップ経由でそのまま紐付ける。 */
   private async importCustomPostTypes(
     customItemsByType: Map<string, WxrItem[]>,
+    slugToCategoryId: Map<string, string>,
     result: ImportResult
   ): Promise<void> {
     if (customItemsByType.size === 0) return;
@@ -318,6 +324,9 @@ export class ImportService {
       for (const item of groupItems) {
         const title = item.title || "(無題)";
         const { status, publishAt } = this.mapStatus(item.status, item.postDate);
+        const categoryIds = [...item.categorySlugs, ...item.tagSlugs]
+          .map((slug) => slugToCategoryId.get(slug))
+          .filter((id): id is string => Boolean(id));
 
         try {
           await this.postTypeEntriesService.create(postType.slug, {
@@ -326,6 +335,7 @@ export class ImportService {
             fieldValues: this.buildFieldValues(item),
             status,
             publishAt,
+            categoryIds,
           });
           result.postTypeEntriesCreated += 1;
         } catch (error) {
@@ -456,6 +466,8 @@ export class ImportService {
       return { status: ContentStatus.DRAFT };
     }
 
+    // private(限定公開)を含め、publish/future以外はすべてDRAFTとして取り込む。
+    // このCMSはpublish状態の記事だけを公開APIに出すため、privateの非公開性を安全側で再現できる。
     return { status: ContentStatus.DRAFT };
   }
 
