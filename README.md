@@ -177,11 +177,12 @@ model Post {
 }
 
 model Category {
-  id     String @id @default(cuid())
-  siteId String
-  name   String
-  slug   String @unique
-  posts  Post[]
+  id              String @id @default(cuid())
+  siteId          String
+  name            String
+  slug            String @unique
+  posts           Post[]
+  postTypeEntries PostTypeEntry[]
 }
 
 model Page {
@@ -231,6 +232,7 @@ model PostTypeEntry {
   fieldValues Json          // Record<string, FieldValue>(packages/blocks参照)
   status      ContentStatus @default(DRAFT) // DRAFT | SCHEDULED | PUBLISHED
   publishAt   DateTime?     // SCHEDULED時の公開予定日時
+  categories  Category[]    // Postと同様、複数のカテゴリーに属することができる
 }
 ```
 
@@ -385,23 +387,26 @@ curl -b cookies.txt -X POST http://localhost:4000/posts \
 - **ログイン**(`/login`): 認証なしでは他のすべての画面にアクセスできません(`proxy.ts`が
   クッキーの有無を確認してリダイレクトします。実際の署名/有効期限の検証は、APIリクエストの
   たびにサーバー側で行われます)。
-- **記事管理**(`/posts`): ステータスバッジ、公開切り替え・修正・削除。
+- **記事管理**(`/posts`): タイトル検索・ページネーション(ページ遷移なし)、ステータスバッジ、
+  公開切り替え・修正・削除。
 - **新規投稿 / 修正**(`/posts/new`, `/posts/[id]/edit`): タイトル・本文はメインカラム、
   投稿者・カテゴリー・ステータス・slugはWordPress風の固定サイドバーに分けたレイアウトです。
   ブロックはドラッグハンドルで並べ替えでき、画像系ブロックはメディアライブラリからその場で
   選択・アップロードできます。保存前のプレビュー、公開済み記事は公開サイトへ直接移動できる
   リンクも提供します。
 - **固定ページ管理**(`/pages`, `/pages/new`, `/pages/[id]/edit`): 記事編集画面と同じブロック
-  エディタ・プレビュー・予約公開UIを使うが、カテゴリー・投稿者・要約の入力欄がない分シンプル。
+  エディタ・プレビュー・予約公開UI・検索/ページネーションを使うが、カテゴリー・投稿者・要約の
+  入力欄がない分シンプル。
 - **カテゴリー管理**(`/categories`): 作成/削除。
 - **メディア**(`/media`): ファイルのアップロード、alt・キャプションの編集、URLのコピー、一覧、削除。
 - **カスタムブロック**(`/block-types`): ACFの「フィールドグループ」に相当するカスタムブロックの
   フィールド構成を作成/修正/削除。作成したブロックは記事編集画面のブロック一覧にすぐ追加されます。
 - **WordPressインポート**(`/import`): WXRファイルをアップロードし、記事・固定ページ・
-  カテゴリーを一括作成。結果(作成/スキップ/失敗件数)をその場で表示します。
+  カテゴリー・カスタム投稿タイプを一括作成。結果(作成/スキップ/失敗件数)をその場で表示します。
 - **カスタム投稿タイプ**(`/post-types`): 独自コンテンツタイプの定義を作成/修正/削除。
   定義ごとに「エントリー管理」(`/entries/:slug`)へのリンクがあり、そこから実データを
-  作成/修正/削除できます(タイトル・フィールド値・ステータス・slugを持つ、Postに似たフォーム)。
+  作成/修正/削除できます(タイトル・フィールド値・カテゴリー・ステータス・slugを持つ、
+  Postに似たフォーム。エントリー一覧もタイトル検索・ページネーションに対応)。
 
 ## V1の範囲
 
